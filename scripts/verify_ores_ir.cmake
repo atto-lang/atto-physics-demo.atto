@@ -11,7 +11,10 @@ foreach(signature IN ITEMS "physics_advance_axis|4" "physics_reflect_axis|4" "ph
   string(REPLACE "|" ";" parts "${signature}")
   list(GET parts 0 symbol)
   list(GET parts 1 arity)
-  set(pattern "(^|\n)[ \t]*define[ \t]+(dso_local[ \t]+)?(noundef[ \t]+)?i64[ \t]+@${symbol}\\(([^\r\n)]*)\\)")
+  # The signature must open a function body; a bodyless 'define' header
+  # is not executable LLVM IR. Exclude braces that occur in IR comments.
+  # Permit LLVM function attributes and a newline before the body opener.
+  set(pattern "(^|\n)[ \t]*define[ \t]+(dso_local[ \t]+)?(noundef[ \t]+)?i64[ \t]+@${symbol}\\(([^\r\n)]*)\\)[^\r\n;{}]*(\r?\n[ \t]*)?\\{")
   string(REGEX MATCH "${pattern}" definition "${ir}")
   if(definition STREQUAL "")
     message(FATAL_ERROR "LLVM IR missing externally callable default-ABI i64 definition of ${symbol}")
