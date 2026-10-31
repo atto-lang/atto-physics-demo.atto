@@ -39,6 +39,20 @@ arity, internal linkage and an incompatible calling convention. The build
 checks compiler-produced IR using the same verifier; passing fixture tests
 is **not** evidence that Oreslang compiled, linked, or executed.
 
+## Conditional fixed-point domain gate (no guest)
+
+The queue-only CTest set now also includes a C++20 consteval check covering all
+192 initializer slots, fixed-point scale, radius, position and velocity bounds.
+The core header enforces compile-time constants that close under gravity,
+wall reflection and clamping. These are source-level invariants for the
+reset-world state machine and are **not** a proof about arbitrary public FFI
+inputs, unbounded tick counters, hard RT or actual compiled Oreslang behavior.
+
+The compiler-backed `tests/native_contract.cpp` remains mandatory and now
+checks every body's domain on each of 1200 ticks, extra wall/terminal
+boundary cases and replay after reset. Without exact-head real `.ores` guest
+execution that test is an unexecuted conformance gate, not a pass.
+
 ## Required guest execution gate
 
 ```sh
