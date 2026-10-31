@@ -15,6 +15,8 @@ target_link_libraries(physics_snapshot_ring_contract PRIVATE Threads::Threads)
 target_compile_options(physics_snapshot_ring_contract PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Werror>)
 add_test(NAME snapshot_ring_no_guest_contract COMMAND physics_snapshot_ring_contract)
+add_test(NAME llvm_ir_abi_preflight_no_guest_contract
+  COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/ir_signature_contract.cmake")
 
 if(ORES_PHYSICS_QUEUE_ONLY AND ORES_PHYSICS_GUI)
   message(FATAL_ERROR "Queue-only verification requires -DORES_PHYSICS_GUI=OFF")
