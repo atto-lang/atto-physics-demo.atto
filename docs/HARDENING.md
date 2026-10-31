@@ -238,3 +238,40 @@ Negative fixtures cover `zeroext`, `signext`, `inreg`, and
 `noundef inreg`; a named-SSA positive fixture protects ordinary IR.
 Local byte-identical Git-blob host tests and Clang C-reference O0/O2 IR
 checks are not real Oreslang native guest execution.
+
+
+## Native LLVM parser/codegen gate before IR publication (host-side evidence)
+
+The handwritten regular-expression ABI preflight is not a full LLVM parser or
+module verifier: IR can contain all four correctly shaped symbol declarations
+and still be malformed or refer to undefined SSA values. The real-guest
+`compile_ores.cmake` path now requires `ORE_CLANG` from the same explicitly
+selected Clang executable used by CMake's guest object rule. Before the
+`.candidate` IR is renamed to `native-physics.ll`, that executable runs:
+
+```sh
+clang -x ir -c native-physics.ll.candidate -o native-physics.ll.verify-probe.o
+```
+
+A nonzero result, missing output object, or empty object rejects publication
+and deletes the final IR, candidate, and scratch object. Successful probes
+are deleted before the verified candidate is atomically published. This is
+a real LLVM parser/codegen check; it still does **not** establish Oreslang
+source-to-IR provenance, guest arithmetic correctness, native executable
+testing, GUI behavior, or hard real-time timing.
+
+The host-only `llvm_ir_native_parser_no_guest_contract` invokes real Clang
+on synthetic reference LLVM IR. Its malformed case has a valid-looking ABI
+header but an undefined SSA operand: the structural check accepts it, and
+Clang rejects it. The negative publication test checks failure and complete
+artifact cleanup. A second negative test uses a zero-exit stand-in that
+writes no object and requires rejection. The older compiler-failure test
+also pre-seeds a stale verification object to check early cleanup paths.
+
+This contract runs if Clang is discoverable for host-only CTest; the
+production native build always requires Clang, and the pinned O0/O2 runner
+must independently check the selected Clang's binary SHA-256. If available,
+a separately pinned `llvm-as`/`opt -passes=verify` may be added for
+additional module verification; this patch does not claim those commands
+ran. The source-organization runner admission and real `oreslang-llvmc`
+guest checks remain independent, mandatory promotion gates.
