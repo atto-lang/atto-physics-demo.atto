@@ -12,6 +12,9 @@ define i64 @physics_reflect_axis(i64 %0, i64 %1, i64 %2, i64 %3) {
 define noundef i64 @physics_gravity(i64 %0, i64 %1, i64 %2) {
   ret i64 0
 }
+define i64 @physics_discs_overlap(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5) {
+  ret i64 0
+}
 ]=])
 function(check label contents accepted)
   file(WRITE "${fixture}" "${contents}")
@@ -38,5 +41,10 @@ string(REPLACE "define i64 @physics_reflect_axis" "define fastcc i64 @physics_re
 check("non-default calling convention" "${bad}" FALSE)
 string(REPLACE "define i64 @physics_reflect_axis" "define internal i64 @physics_reflect_axis" bad "${valid}")
 check("internal linkage" "${bad}" FALSE)
+string(REPLACE "physics_discs_overlap(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5)"
+  "physics_discs_overlap(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4)" bad "${valid}")
+check("collision ABI wrong arity" "${bad}" FALSE)
+string(REPLACE "define i64 @physics_discs_overlap" "; define i64 @physics_discs_overlap" bad "${valid}")
+check("collision ABI comment only" "${bad}" FALSE)
 file(REMOVE "${fixture}")
 message(STATUS "IR_SIGNATURE_STATIC_NO_GUEST_CONTRACT_PASS")
