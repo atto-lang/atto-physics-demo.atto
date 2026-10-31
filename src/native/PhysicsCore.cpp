@@ -53,6 +53,7 @@ void copy_snapshot(const World& w, Snapshot& out, std::uint64_t late) noexcept {
     out.y = w.y;
     out.radius = w.radius;
     out.tick = w.tick;
+    out.generation = 0;  // Bare copy is unowned until engine stamps its epoch.
     out.missed_deadlines = late;
 }
 }  // namespace ores
