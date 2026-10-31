@@ -13,13 +13,15 @@ foreach(signature IN ITEMS "physics_advance_axis|4" "physics_reflect_axis|4" "ph
   list(GET parts 1 arity)
   # The signature must open a function body; a bodyless 'define' header
   # is not executable LLVM IR. Exclude braces that occur in IR comments.
-  # Permit LLVM function attributes and a newline before the body opener.
-  set(pattern "(^|\n)[ \t]*define[ \t]+(dso_local[ \t]+)?(noundef[ \t]+)?i64[ \t]+@${symbol}\\(([^\r\n)]*)\\)[^\r\n;{}]*(\r?\n[ \t]*)?\\{")
+  # Permit ABI-neutral i64 range return metadata (seen at Clang O2),
+  # LLVM function attributes and a newline before the body opener.
+  # Never permit internal linkage or non-default calling conventions.
+  set(pattern "(^|\n)[ \t]*define[ \t]+(dso_local[ \t]+)?(noundef[ \t]+)?(range\\(i64[ \t]+-?[0-9]+,[ \t]*-?[0-9]+\\)[ \t]+)?i64[ \t]+@${symbol}\\(([^\r\n)]*)\\)[^\r\n;{}]*(\r?\n[ \t]*)?\\{")
   string(REGEX MATCH "${pattern}" definition "${ir}")
   if(definition STREQUAL "")
     message(FATAL_ERROR "LLVM IR missing externally callable default-ABI i64 definition of ${symbol}")
   endif()
-  set(argtext "${CMAKE_MATCH_4}")
+  set(argtext "${CMAKE_MATCH_5}")
   string(REPLACE "," ";" args "${argtext}")
   list(LENGTH args found_arity)
   if(NOT found_arity EQUAL arity)
