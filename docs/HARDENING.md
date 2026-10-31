@@ -261,7 +261,9 @@ source-to-IR provenance, guest arithmetic correctness, native executable
 testing, GUI behavior, or hard real-time timing.
 
 The host-only `llvm_ir_native_parser_no_guest_contract` invokes real Clang
-on synthetic reference LLVM IR. Its malformed case has a valid-looking ABI
+on synthetic reference LLVM IR. It also confirms that a byte-identical valid
+reference module is published after Clang succeeds, with no candidate or probe
+object left behind; this success case is **not** an Oreslang guest build. Its malformed case has a valid-looking ABI
 header but an undefined SSA operand: the structural check accepts it, and
 Clang rejects it. The negative publication test checks failure and complete
 artifact cleanup. A second negative test uses a zero-exit stand-in that
