@@ -2,6 +2,7 @@
 
 #include "PhysicsEngine.hpp"
 #include <QQuickPaintedItem>
+#include <mutex>
 
 class PhysicsCanvas final : public QQuickPaintedItem {
     Q_OBJECT
@@ -11,12 +12,12 @@ class PhysicsCanvas final : public QQuickPaintedItem {
     Q_PROPERTY(qulonglong droppedSnapshots READ droppedSnapshots NOTIFY tickChanged)
 public:
     explicit PhysicsCanvas(QQuickItem* parent = nullptr);
-    ~PhysicsCanvas() override = default;
+    ~PhysicsCanvas() override;
     void paint(QPainter* painter) override;
     bool paused() const noexcept { return engine_.paused(); }
     void setPaused(bool v);
-    qulonglong tick() const noexcept { return snapshot_.tick; }
-    qulonglong missedDeadlines() const noexcept { return snapshot_.missed_deadlines; }
+    qulonglong tick() const;
+    qulonglong missedDeadlines() const;
     qulonglong droppedSnapshots() const noexcept { return engine_.dropped_snapshots(); }
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void reset();
@@ -27,5 +28,6 @@ signals:
 
 private:
     ores::PhysicsEngine engine_{};
+    mutable std::mutex snapshot_mutex_{};
     ores::Snapshot snapshot_{};
 };
