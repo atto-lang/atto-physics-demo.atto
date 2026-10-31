@@ -223,3 +223,18 @@ accepts this narrowly specified attribute before `i64`, while refusing
 incorrect range widths and ABI-modifying `zeroext` returns. The exact source
 blobs were locally tested against C-reference Clang `-O0` and `-O2` IR;
 this proves structural compatibility only, not Oreslang guest execution.
+
+## Fail-closed native parameter ABI boundary
+
+The C++ physics functions call the guest via ordinary signed `int64_t` values.
+A syntactically valid LLVM `i64` parameter can nevertheless carry
+ABI-affecting attributes such as `zeroext`, `signext`, or `inreg`; a
+type-only verifier incorrectly accepted those attributes. The structural
+preflight now permits only `i64`, optional ABI-neutral `noundef`, and an
+optional unquoted SSA parameter name. Unknown parameter attributes are
+rejected until their C-ABI compatibility is demonstrated.
+
+Negative fixtures cover `zeroext`, `signext`, `inreg`, and
+`noundef inreg`; a named-SSA positive fixture protects ordinary IR.
+Local byte-identical Git-blob host tests and Clang C-reference O0/O2 IR
+checks are not real Oreslang native guest execution.
