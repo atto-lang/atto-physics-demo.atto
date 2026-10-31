@@ -216,3 +216,10 @@ This is only a structural IR gate. A fully valid LLVM IR module still requires
 real compiler output and a native Clang parse/build followed by execution.
 Source-equivalent local CMake fixtures and Clang-generated C-reference IR
 cannot substitute for `.ores` guest compilation or exact-head GitHub Actions.
+
+At Clang O2 a valid function may acquire an ABI-neutral `range(i64 0, 2)`
+return attribute (for an integer-valued predicate). The preflight therefore
+accepts this narrowly specified attribute before `i64`, while refusing
+incorrect range widths and ABI-modifying `zeroext` returns. The exact source
+blobs were locally tested against C-reference Clang `-O0` and `-O2` IR;
+this proves structural compatibility only, not Oreslang guest execution.
