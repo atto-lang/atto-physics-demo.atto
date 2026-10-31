@@ -1,4 +1,5 @@
 #include "PhysicsCore.hpp"
+#include "SnapshotLayouts.hpp"
 
 #include <cstdint>
 #include <cstdio>
@@ -88,6 +89,23 @@ int main() {
     }
     CHECK(digest(a) == first_run_digest);
     CHECK(a.tick == 1200 && b.tick == 1200);
+    // These arrays were populated by the genuine Oreslang guest. The
+    // preallocated native presentation layout must preserve every bit,
+    // including the epoch token, without implementing physics in C++.
+    ores::Snapshot soa_frame{}, roundtrip{};
+    ores::AoSoaSnapshot aosoa_frame{};
+    ores::copy_snapshot(a, soa_frame, 7);
+    soa_frame.generation = 19;
+    ores::pack_snapshot_aosoa(soa_frame, aosoa_frame);
+    ores::unpack_snapshot_aosoa(aosoa_frame, roundtrip);
+    CHECK(roundtrip.tick == soa_frame.tick);
+    CHECK(roundtrip.generation == soa_frame.generation);
+    CHECK(roundtrip.missed_deadlines == soa_frame.missed_deadlines);
+    for (std::size_t i = 0; i < ores::kBodies; ++i) {
+        CHECK(roundtrip.x[i] == soa_frame.x[i]);
+        CHECK(roundtrip.y[i] == soa_frame.y[i]);
+        CHECK(roundtrip.radius[i] == soa_frame.radius[i]);
+    }
     CHECK(digest(a) != 0);
     std::printf("PHYSICS_GUEST_1200_TICK_DIGEST=%016llx\n",
                 static_cast<unsigned long long>(first_run_digest));
