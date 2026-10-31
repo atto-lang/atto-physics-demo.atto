@@ -32,6 +32,33 @@ static void validate(const ores::Snapshot& snapshot) {
 
 int main() {
     {
+        // Controller-owned stop/restart: old generation frames and telemetry
+        // cannot contaminate the first snapshot of a new worker.
+        ores::SnapshotRing queue;
+        ores::Snapshot frame{}, read{};
+        for (std::uint64_t generation = 1; generation <= 1024; ++generation) {
+            fill(frame, generation * 1000 + 100);
+            CHECK(queue.publish(frame));
+            fill(frame, generation * 1000 + 101);
+            CHECK(queue.publish(frame));
+            fill(frame, generation * 1000 + 102);
+            CHECK(queue.publish(frame));
+            fill(frame, generation * 1000 + 103);
+            CHECK(!queue.publish(frame));
+            CHECK(queue.skipped_snapshots() == 1);
+            // No producer/consumer is active while the controller resets.
+            queue.clear_quiescent();
+            CHECK(queue.skipped_snapshots() == 0);
+            CHECK(!queue.consume_latest(read));
+            fill(frame, generation);
+            CHECK(queue.publish(frame));
+            CHECK(queue.consume_latest(read));
+            CHECK(read.tick == generation);
+            validate(read);
+            CHECK(!queue.consume_latest(read));
+        }
+    }
+    {
         ores::SnapshotRing queue;
         ores::Snapshot sample{}, result{};
         CHECK(!queue.consume_latest(result));
