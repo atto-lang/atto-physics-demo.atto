@@ -8,6 +8,10 @@ PhysicsEngine::~PhysicsEngine() { stop(); }
 
 void PhysicsEngine::start() {
     if (running_.exchange(true, std::memory_order_acq_rel)) return;
+    // start()/stop()/read_latest() are controlled by one GUI thread. No
+    // producer exists here and the consumer is quiescent. A new worker must
+    // not publish alongside unread frames from the previous generation.
+    ring_.clear_quiescent();
     try {
         worker_ = std::thread([this] { run(); });
     } catch (...) {
