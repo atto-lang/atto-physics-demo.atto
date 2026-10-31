@@ -106,4 +106,29 @@ if(ORE_TEST_TRUE)
     endif()
   endforeach()
 endif()
+# Successful synthetic IR is only a host publication-path positive control.
+# It must never be reported as an Oreslang guest compilation or native test.
+set(stub_valid "${work}/emit-valid-reference.sh")
+file(WRITE "${stub_valid}" "#!/bin/sh\ncat '${valid_file}'\n")
+file(CHMOD "${stub_valid}" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+  GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+execute_process(
+  COMMAND "${CMAKE_COMMAND}" "-DORE_COMPILER=${stub_valid}"
+    "-DORE_CLANG=${ORE_TEST_CLANG}" "-DORE_SOURCE=${source}"
+    "-DORE_IR=${final}" -P "${compile_script}"
+  RESULT_VARIABLE status OUTPUT_VARIABLE out ERROR_VARIABLE err)
+if(NOT "${status}" STREQUAL "0" OR NOT EXISTS "${final}")
+  message(FATAL_ERROR "Valid host-only reference IR was not published: ${err}")
+endif()
+file(SHA256 "${valid_file}" expected_reference_sha)
+file(SHA256 "${final}" published_reference_sha)
+if(NOT expected_reference_sha STREQUAL published_reference_sha)
+  message(FATAL_ERROR "Host-only IR publication changed the verified source")
+endif()
+foreach(suffix ".candidate" ".verify-probe.o")
+  if(EXISTS "${final}${suffix}")
+    message(FATAL_ERROR "Successful publication left a scratch artifact: ${final}${suffix}")
+  endif()
+endforeach()
+file(REMOVE "${final}")
 message(STATUS "LLVM_NATIVE_PARSER_NO_GUEST_CONTRACT_PASS")
