@@ -29,6 +29,18 @@ function(check label contents accepted)
   endif()
 endfunction()
 check("expected ABI" "${valid}" TRUE)
+# Clang O2 may annotate a narrowed i64 return with valid range metadata;
+# that changes optimization information, not symbol calling conventions.
+string(REPLACE "define i64 @physics_discs_overlap"
+  "define range(i64 0, 2) i64 @physics_discs_overlap" optimized "${valid}")
+string(REPLACE "physics_discs_overlap(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5) {"
+  "physics_discs_overlap(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5) local_unnamed_addr #0 {"
+  optimized "${optimized}")
+check("Clang O2 integer range return" "${optimized}" TRUE)
+string(REPLACE "range(i64 0, 2)" "range(i32 0, 2)" bad "${optimized}")
+check("incorrect range return integer width" "${bad}" FALSE)
+string(REPLACE "range(i64 0, 2)" "zeroext" bad "${optimized}")
+check("ABI-altering zeroext return" "${bad}" FALSE)
 string(REPLACE "define noundef i64 @physics_gravity" "; define noundef i64 @physics_gravity" bad "${valid}")
 check("commented-out definition" "${bad}" FALSE)
 string(REPLACE "define i64 @physics_reflect_axis" "declare i64 @physics_reflect_axis" bad "${valid}")
