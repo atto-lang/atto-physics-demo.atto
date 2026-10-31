@@ -9,7 +9,8 @@ trap 'rm -rf -- "$work"' EXIT
 repo="$work/fixture"
 mkdir -p "$repo/scripts"
 cp -- "$runner" "$repo/scripts/run_pinned_llvm_guest_matrix.sh"
-printf 'build/\n' > "$repo/.gitignore"
+# Ignore both directory and symlink forms for the symlinked-root negative case.
+printf 'build\n' > "$repo/.gitignore"
 git -C "$repo" init -q
 git -C "$repo" add .
 git -C "$repo" -c user.name=PhysicsContract -c user.email=contract@example.invalid commit -qm fixture
@@ -69,4 +70,8 @@ printf 'keep me\n' > "$work/target/marker"
 ln -s "$work/target" "$repo/build"
 run_rejected 'symlinked build root' 'Refusing symlinked build root' "$head" "$tree" "$sha" "$sha"
 test -f "$work/target/marker"
+if grep -Eq '(^|[[:space:]])rm[[:space:]]+-rf([[:space:]]|$)' "$runner"; then
+  echo "Pinned guest matrix must not recursively delete previous build artifacts" >&2
+  exit 1
+fi
 echo 'PINNED_GUEST_ADMISSION_NO_GUEST_CONTRACT_PASS'
