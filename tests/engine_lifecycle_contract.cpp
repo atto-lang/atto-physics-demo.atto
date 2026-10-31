@@ -7,7 +7,7 @@
 #include <thread>
 
 #define CHECK(c) do { if (!(c)) { \
-    std::fprintf(stderr, "engine lifecycle check failed at %s:%d: %s\\n", \
+    std::fprintf(stderr, "engine lifecycle check failed at %s:%d: %s\n", \
                  __FILE__, __LINE__, #c); std::abort(); \
 } } while (false)
 
@@ -36,7 +36,7 @@ void await_tick(ores::PhysicsEngine& engine, ores::Snapshot& frame,
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
-    std::fprintf(stderr, "timed out awaiting guest frame generation %llu tick %llu\\n",
+    std::fprintf(stderr, "timed out awaiting guest frame generation %llu tick %llu\n",
                  static_cast<unsigned long long>(generation),
                  static_cast<unsigned long long>(min_tick));
     std::abort();
