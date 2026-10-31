@@ -1,0 +1,30 @@
+# Static LLVM IR ABI preflight. This is not compiler or guest execution proof.
+if(NOT DEFINED ORE_IR OR "${ORE_IR}" STREQUAL "" OR NOT EXISTS "${ORE_IR}")
+  message(FATAL_ERROR "Missing compiler-produced LLVM IR file: ${ORE_IR}")
+endif()
+file(READ "${ORE_IR}" ir)
+
+# The C++ caller requires unmangled C-ABI functions with signed i64 returns
+# and the specified count of i64 arguments. In particular, do not accept a
+# mere substring in a comment, a declaration, or a non-default calling convention.
+foreach(signature IN ITEMS "physics_advance_axis|4" "physics_reflect_axis|4" "physics_gravity|3")
+  string(REPLACE "|" ";" parts "${signature}")
+  list(GET parts 0 symbol)
+  list(GET parts 1 arity)
+  set(pattern "(^|\n)[ \t]*define[ \t]+(dso_local[ \t]+)?(noundef[ \t]+)?i64[ \t]+@${symbol}\\(([^\r\n)]*)\\)")
+  string(REGEX MATCH "${pattern}" definition "${ir}")
+  if(definition STREQUAL "")
+    message(FATAL_ERROR "LLVM IR missing externally callable default-ABI i64 definition of ${symbol}")
+  endif()
+  set(argtext "${CMAKE_MATCH_4}")
+  string(REPLACE "," ";" args "${argtext}")
+  list(LENGTH args found_arity)
+  if(NOT found_arity EQUAL arity)
+    message(FATAL_ERROR "LLVM IR ${symbol} arity ${found_arity}, expected ${arity}")
+  endif()
+  foreach(arg IN LISTS args)
+    if(NOT arg MATCHES "^[ \t]*i64([ \t]|$)")
+      message(FATAL_ERROR "LLVM IR ${symbol} must take only i64 parameters: ${arg}")
+    endif()
+  endforeach()
+endforeach()
