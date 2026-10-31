@@ -1,0 +1,62 @@
+cmake_minimum_required(VERSION 3.20)
+project(oreslang_physics LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_AUTOMOC ON)
+option(ORES_PHYSICS_GUI "Build native Qt Quick desktop frontend" ON)
+
+find_program(ORESLANG_LLVM_COMPILER NAMES oreslang-llvmc REQUIRED)
+find_program(ORE_CLANG NAMES clang REQUIRED)
+find_package(Threads REQUIRED)
+
+set(ORE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/physics/physics.ores")
+set(ORE_IR "${CMAKE_CURRENT_BINARY_DIR}/native-physics.ll")
+set(ORE_OBJ "${CMAKE_CURRENT_BINARY_DIR}/native-physics.o")
+
+add_custom_command(OUTPUT "${ORE_IR}"
+  COMMAND "${CMAKE_COMMAND}"
+          "-DORE_COMPILER=${ORESLANG_LLVM_COMPILER}"
+          "-DORE_SOURCE=${ORE_SOURCE}"
+          "-DORE_IR=${ORE_IR}"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/compile_ores.cmake"
+  DEPENDS "${ORE_SOURCE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/compile_ores.cmake"
+  VERBATIM)
+add_custom_command(OUTPUT "${ORE_OBJ}"
+  COMMAND "${ORE_CLANG}" -O2 -x ir -c "${ORE_IR}" -o "${ORE_OBJ}"
+  DEPENDS "${ORE_IR}" VERBATIM)
+set_source_files_properties("${ORE_OBJ}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+
+add_library(ores_physics_core STATIC src/native/PhysicsCore.cpp)
+target_include_directories(ores_physics_core PUBLIC src/native)
+target_compile_options(ores_physics_core PRIVATE
+  $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Werror>)
+add_library(ores_native_guest STATIC "${ORE_OBJ}")
+set_target_properties(ores_native_guest PROPERTIES LINKER_LANGUAGE CXX)
+# This is linked into BOTH the Qt app and the real guest ABI test.
+enable_testing()
+add_executable(physics_native_contract tests/native_contract.cpp)
+target_link_libraries(physics_native_contract PRIVATE ores_physics_core ores_native_guest)
+add_test(NAME real_oreslang_llvm_physics_contract COMMAND physics_native_contract)
+add_executable(physics_spsc_contract
+  tests/spsc_contract.cpp src/native/PhysicsEngine.cpp)
+target_link_libraries(physics_spsc_contract PRIVATE
+  ores_physics_core ores_native_guest Threads::Threads)
+add_test(NAME bounded_spsc_physics_smoke COMMAND physics_spsc_contract)
+
+if(ORES_PHYSICS_GUI)
+  find_package(Qt6 6.2 REQUIRED COMPONENTS Quick Qml QuickControls2)
+  qt_add_executable(oreslang_physics
+    src/native/main.cpp
+    src/native/PhysicsCanvas.cpp
+    src/native/PhysicsCanvas.hpp
+    src/native/PhysicsEngine.cpp
+    src/native/PhysicsEngine.hpp)
+  qt_add_resources(oreslang_physics "physics_qml"
+    PREFIX "/"
+    FILES ui/Main.qml)
+  target_link_libraries(oreslang_physics PRIVATE
+    Qt6::Quick Qt6::Qml Qt6::QuickControls2 Threads::Threads
+    ores_physics_core ores_native_guest)
+endif()
