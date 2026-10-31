@@ -41,16 +41,24 @@ printf 'PHYSICS_GUEST_GATE_COMPILER_SHA256=%s\n' "$compiler_sha"
 printf 'PHYSICS_GUEST_GATE_CLANG_SHA256=%s\n' "$clang_sha"
 "$ORE_CLANG" --version | head -n 1
 
+# Always allocate a new private build root. Reusing ignored build/ contents
+# would allow stale IR, objects, or binaries to impersonate a current-head run.
+[[ ! -L "$root/build" ]] || { echo 'Build root must not be a symlink' >&2; exit 2; }
+mkdir -p "$root/build"
+run_dir=$(mktemp -d "$root/build/pinned-native-guest.XXXXXXXX") || {
+  echo 'Cannot allocate a fresh physics guest build directory' >&2; exit 2;
+}
+printf 'PHYSICS_GUEST_GATE_BUILD_DIRECTORY=%s\n' "$run_dir"
 prior_digest=''
 for level in 0 2; do
-  build="$root/build/pinned-native-guest-O${level}"
+  build="$run_dir/O${level}"
   cmake -S "$root" -B "$build" -DCMAKE_BUILD_TYPE=Release \
     -DORES_PHYSICS_GUI=OFF -DORES_PHYSICS_QUEUE_ONLY=OFF \
     "-DORES_PHYSICS_GUEST_OPT_LEVEL=${level}" \
     "-DORESLANG_LLVM_COMPILER=${ORESLANG_LLVM_COMPILER}" \
     "-DORE_CLANG=${ORE_CLANG}"
   cmake --build "$build" --parallel 2
-  ctest --test-dir "$build" --output-on-failure
+  ctest --test-dir "$build" --output-on-failure --no-tests=error
   output=$("$build/physics_native_contract")
   grep -qx 'REAL_ORESLANG_LLVM_PHYSICS_CONTRACT_PASS' <<< "$output" || {
     echo "O${level} executable did not emit guest PASS marker" >&2; exit 1;

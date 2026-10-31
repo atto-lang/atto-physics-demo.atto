@@ -133,3 +133,12 @@ PASS marker; a host-only test cannot produce a valid result.
 The runner prints source commit/tree and input/output SHA-256 values for a
 receipt. It does not acquire compilers, copy private source, approve another
 organization, establish OS/hardware WCET, or certify zero allocations.
+
+### Fresh-build provenance hardening
+
+Each pinned-matrix invocation creates a fresh, uniquely named private build root
+under ignored `build/`, prints its location in the receipt, and compiles separate
+`O0` and `O2` guest artifacts there. Previous IR/object/executable files cannot
+be reused by accident. Existing `build/` symlinks are rejected, and CTest must
+contain at least one test. Generated build directories are retained for review;
+clean them up only after archiving the independently approved evidence.
