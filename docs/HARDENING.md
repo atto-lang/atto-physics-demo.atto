@@ -133,3 +133,34 @@ PASS marker; a host-only test cannot produce a valid result.
 The runner prints source commit/tree and input/output SHA-256 values for a
 receipt. It does not acquire compilers, copy private source, approve another
 organization, establish OS/hardware WCET, or certify zero allocations.
+
+## Fresh guest build provenance (stacked hardening gate)
+
+The real O0/O2 runner now requires both `EXPECTED_PHYSICS_COMMIT_SHA` and
+`EXPECTED_PHYSICS_TREE_SHA` (40 lowercase hexadecimal digits each), plus
+independently approved SHA-256 pins for `oreslang-llvmc` and Clang. Retrieve
+the exact tree with `git rev-parse 'HEAD^{tree}'` in the authorized source
+repository; do not infer approval from a matching commit alone.
+
+After validating the source commit/tree, clean worktree and both compiler
+digests, the runner **deletes and recreates only its fixed ignored build paths**
+`build/pinned-native-guest-O0` and `build/pinned-native-guest-O2` to prevent
+stale IR/object/native-contract reuse. It refuses symlinked build roots or
+per-optimization build directories. Preserve any previous receipts outside
+those build paths before invoking it.
+
+An optimization-level change in a separately managed CMake build directory
+also changes `native-physics-opt-level.txt`; the native object depends on
+that file. A host-only CMake configure contract checks O0→O2 in the **same**
+build directory without running a compiler or fabricating physics IR.
+
+The source-free negative runner contract tests wrong HEAD, wrong tree, dirty
+worktree, compiler digest mismatch, Clang digest mismatch and a symlinked
+build directory. Synthetic sentinel programs are not used as physics compiler
+substitutes; no native guest proof follows from those checks.
+
+**Current evidence boundary:** the runner's freshness and pin guards are
+host/source contracts only. Nothing here proves a real compiler produced
+correct IR, that Qt ran, that sanitizers passed, or that a hard RT deadline
+is satisfied. Keep the stacked PRs draft until independent exact-head native
+execution and review have been recorded.
