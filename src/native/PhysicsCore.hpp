@@ -46,6 +46,7 @@ struct Snapshot final {
     std::array<std::int64_t, kBodies> y{};
     std::array<std::int64_t, kBodies> radius{};
     std::uint64_t tick = 0;
+    std::uint64_t generation = 0;  // Producer epoch; no reused frames after restart.
     std::uint64_t missed_deadlines = 0;
 };
 
