@@ -47,27 +47,26 @@ printf 'PHYSICS_GUEST_GATE_COMPILER_SHA256=%s\n' "$compiler_sha"
 printf 'PHYSICS_GUEST_GATE_CLANG_SHA256=%s\n' "$clang_sha"
 "$ORE_CLANG" --version | head -n 1
 
-# Build directories are intentionally recreated: a matching Git commit plus a
-# newly pinned compiler must never reuse IR/object/executable from an earlier
-# invocation. Refuse symlinked build roots before deleting fixed subpaths.
+# Allocate one new run-specific build root instead of deleting existing output.
+# All O0/O2 native inputs and results must come from this one clean invocation.
 if [[ -L "$root/build" ]]; then
   echo "Refusing symlinked build root" >&2; exit 2;
 fi
 mkdir -p -- "$root/build"
+run_dir=$(mktemp -d "$root/build/pinned-native-guest.XXXXXXXX") || {
+  echo "Unable to create fresh physics guest build directory" >&2; exit 2;
+}
+printf 'PHYSICS_GUEST_GATE_BUILD_DIRECTORY=%s\n' "$run_dir"
 prior_digest=''
 for level in 0 2; do
-  build="$root/build/pinned-native-guest-O${level}"
-  if [[ -L "$build" ]]; then
-    echo "Refusing symlinked guest build directory: $build" >&2; exit 2;
-  fi
-  rm -rf -- "$build"
+  build="$run_dir/O${level}"
   cmake -S "$root" -B "$build" -DCMAKE_BUILD_TYPE=Release \
     -DORES_PHYSICS_GUI=OFF -DORES_PHYSICS_QUEUE_ONLY=OFF \
     "-DORES_PHYSICS_GUEST_OPT_LEVEL=${level}" \
     "-DORESLANG_LLVM_COMPILER=${ORESLANG_LLVM_COMPILER}" \
     "-DORE_CLANG=${ORE_CLANG}"
   cmake --build "$build" --parallel 2
-  ctest --test-dir "$build" --output-on-failure
+  ctest --test-dir "$build" --output-on-failure --no-tests=error
   output=$("$build/physics_native_contract")
   grep -qx 'REAL_ORESLANG_LLVM_PHYSICS_CONTRACT_PASS' <<< "$output" || {
     echo "O${level} executable did not emit guest PASS marker" >&2; exit 1;

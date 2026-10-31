@@ -200,3 +200,19 @@ interposition or WCET.
 See `docs/TEN_GATE_LEDGER.md` for ten numbered promotion gates and exact
 missing evidence for each. Keep native compiler, Qt, TSAN and target
 real-time claims explicitly marked unverified until executed.
+
+## O0/O2 runner reconciliation: non-destructive isolated builds
+
+Earlier draft runner variants used fixed O0/O2 build directories and deleted them
+with `rm -rf`. This approach is replaced by a new `mktemp -d` subdirectory under
+the ignored non-symlinked `build/` directory for every invocation. The exact
+source commit and Git tree pins, compiler/Clang SHA-256 pins and O0/O2 object
+optimization-stamp dependency from the earlier draft are retained. Existing
+artifacts are never deleted or silently reused; the runner prints the unique
+build directory and both artifact hashes for evidence preservation.
+
+The source-free negative runner contract now checks that the entire parent
+`build/` directory cannot be a symlink and asserts the runner does not use
+recursive force deletion. This check is not real LLVM guest execution.
+CTest uses `--no-tests=error`. A full native pass still requires a genuine
+pinned Oreslang compiler, Clang and independently verified exact-head test logs.
