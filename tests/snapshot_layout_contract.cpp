@@ -7,7 +7,7 @@
 #include <new>
 
 #define CHECK(c) do { if (!(c)) { \
-    std::fprintf(stderr, "snapshot AoSoA check failed at line %d: %s\\n", \
+    std::fprintf(stderr, "snapshot AoSoA check failed at line %d: %s\n", \
                  __LINE__, #c); std::abort(); \
 } } while (false)
 
