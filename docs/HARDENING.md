@@ -120,9 +120,10 @@ The native object optimization is explicit via `ORES_PHYSICS_GUEST_OPT_LEVEL`
 negative/invalid modes without compiling or fabricating guest IR.
 
 On an authorized Linux checkout with a genuine pinned compiler and Clang, run
-`scripts/run_pinned_llvm_guest_matrix.sh` with all five mandatory environment
-variables: `EXPECTED_PHYSICS_COMMIT_SHA`, `EXPECTED_LLVM_COMPILER_SHA256`,
-`EXPECTED_CLANG_SHA256`, `ORESLANG_LLVM_COMPILER` and `ORE_CLANG`.
+`scripts/run_pinned_llvm_guest_matrix.sh` with all six mandatory environment
+variables: `EXPECTED_PHYSICS_COMMIT_SHA`, `EXPECTED_PHYSICS_TREE_SHA`,
+`EXPECTED_LLVM_COMPILER_SHA256`, `EXPECTED_CLANG_SHA256`,
+`ORESLANG_LLVM_COMPILER` and `ORE_CLANG`.
 The SHA values must be independently approved before execution. The script
 rejects a dirty or mismatched physics checkout, invalid executable identities,
 missing pins and missing binaries. It configures independent guest O0 and O2
@@ -143,11 +144,12 @@ the exact tree with `git rev-parse 'HEAD^{tree}'` in the authorized source
 repository; do not infer approval from a matching commit alone.
 
 After validating the source commit/tree, clean worktree and both compiler
-digests, the runner **deletes and recreates only its fixed ignored build paths**
-`build/pinned-native-guest-O0` and `build/pinned-native-guest-O2` to prevent
-stale IR/object/native-contract reuse. It refuses symlinked build roots or
-per-optimization build directories. Preserve any previous receipts outside
-those build paths before invoking it.
+digests, the runner allocates a **fresh unique private build directory** under
+`build/pinned-native-guest.XXXXXXXX`, with O0 and O2 subdirectories. It
+rejects a symlinked `build/` root and preserves any previous receipts rather
+than deleting them. Reusing an old IR/object/native-contract executable cannot
+satisfy this runner's newly allocated build directory. Clean up older build
+directories only under a separate reviewed retention policy.
 
 An optimization-level change in a separately managed CMake build directory
 also changes `native-physics-opt-level.txt`; the native object depends on
@@ -156,7 +158,7 @@ build directory without running a compiler or fabricating physics IR.
 
 The source-free negative runner contract tests wrong HEAD, wrong tree, dirty
 worktree, compiler digest mismatch, Clang digest mismatch and a symlinked
-build directory. Synthetic sentinel programs are not used as physics compiler
+build root. Synthetic sentinel programs are not used as physics compiler
 substitutes; no native guest proof follows from those checks.
 
 **Current evidence boundary:** the runner's freshness and pin guards are
