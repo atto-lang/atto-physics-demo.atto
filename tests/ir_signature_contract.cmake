@@ -46,5 +46,15 @@ string(REPLACE "physics_discs_overlap(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i6
 check("collision ABI wrong arity" "${bad}" FALSE)
 string(REPLACE "define i64 @physics_discs_overlap" "; define i64 @physics_discs_overlap" bad "${valid}")
 check("collision ABI comment only" "${bad}" FALSE)
+# A signature is insufficient without an actual opening function body.
+# Previously these malformed IR headers passed despite having no native code.
+string(REPLACE "physics_reflect_axis(i64 %0, i64 %1, i64 %2, i64 %3) {"
+  "physics_reflect_axis(i64 %0, i64 %1, i64 %2, i64 %3)" bad "${valid}")
+check("bodyless define header" "${bad}" FALSE)
+# Semicolons begin LLVM IR comments, so a brace after one is not a body.
+string(REPLACE "physics_discs_overlap(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5) {"
+  "physics_discs_overlap(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5) ; {"
+  bad "${valid}")
+check("opening brace in comment" "${bad}" FALSE)
 file(REMOVE "${fixture}")
 message(STATUS "IR_SIGNATURE_STATIC_NO_GUEST_CONTRACT_PASS")
