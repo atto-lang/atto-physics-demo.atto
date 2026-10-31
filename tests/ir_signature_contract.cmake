@@ -68,5 +68,17 @@ string(REPLACE "physics_discs_overlap(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i6
   "physics_discs_overlap(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5) ; {"
   bad "${valid}")
 check("opening brace in comment" "${bad}" FALSE)
+# ABI-mutating parameter attributes are not C++ plain i64, despite i64 type.
+string(REPLACE "i64 noundef %0, i64 %1" "i64 zeroext %0, i64 %1" bad "${valid}")
+check("zeroext parameter ABI" "${bad}" FALSE)
+string(REPLACE "i64 noundef %0, i64 %1" "i64 signext %0, i64 %1" bad "${valid}")
+check("signext parameter ABI" "${bad}" FALSE)
+string(REPLACE "i64 noundef %0, i64 %1" "i64 inreg %0, i64 %1" bad "${valid}")
+check("inreg parameter ABI" "${bad}" FALSE)
+string(REPLACE "i64 noundef %0, i64 %1" "i64 noundef inreg %0, i64 %1" bad "${valid}")
+check("mixed noundef and inreg parameter ABI" "${bad}" FALSE)
+# LLVM-native SSA names are allowed without affecting the ABI.
+string(REPLACE "i64 noundef %0, i64 %1" "i64 noundef %physics.arg, i64 %1" named "${valid}")
+check("named SSA parameter" "${named}" TRUE)
 file(REMOVE "${fixture}")
 message(STATUS "IR_SIGNATURE_STATIC_NO_GUEST_CONTRACT_PASS")
