@@ -202,3 +202,17 @@ interposition or WCET.
 See `docs/TEN_GATE_LEDGER.md` for ten numbered promotion gates and exact
 missing evidence for each. Keep native compiler, Qt, TSAN and target
 real-time claims explicitly marked unverified until executed.
+
+
+## Static LLVM IR body-admission regression (source-only)
+
+The ABI preflight now rejects a bare `define i64 @function(...)` header if
+it has no opening function body, including braces in an LLVM IR comment. It
+permits attributes between the signature and the body opener and an optional
+line break before the brace. Two negative mutation fixtures lock down those
+cases; the original arity/type/linkage and comment-vs-declaration tests remain.
+
+This is only a structural IR gate. A fully valid LLVM IR module still requires
+real compiler output and a native Clang parse/build followed by execution.
+Source-equivalent local CMake fixtures and Clang-generated C-reference IR
+cannot substitute for `.ores` guest compilation or exact-head GitHub Actions.
