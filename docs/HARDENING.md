@@ -164,3 +164,39 @@ host/source contracts only. Nothing here proves a real compiler produced
 correct IR, that Qt ran, that sanitizers passed, or that a hard RT deadline
 is satisfied. Keep the stacked PRs draft until independent exact-head native
 execution and review have been recorded.
+
+## Worker restart and snapshot-generation safety
+
+Every worker launch now gets a monotonic 64-bit generation. The worker
+captures it by value and stamps every published snapshot, separate from the
+resettable physics tick. Old SPSC frames and skipped counters are discarded
+**only at a controller-owned quiescent point** immediately before launching
+the next producer. Never call `SnapshotRing::clear_quiescent()` with a
+concurrent producer or reader; `start()`/`stop()`/`read_latest()` retain their
+one-GUI-controller-thread ownership contract. Generation exhaustion throws
+before starting a worker rather than wrapping.
+
+The source-only queue contract adds 1024 reset cycles including full ring,
+skipped count, stale frame rejection and post-reset publication.
+
+The **real guest** lifecycle test now requires 12 worker generations with
+actual Oreslang-linked physics code; it verifies advancing ticks, paused reset
+to tick zero, frame spatial bounds and no prior-generation frame escapes. It
+is only built with `ORES_PHYSICS_QUEUE_ONLY=OFF`. It is not a passing test
+until the real native guest is compiled and run.
+
+## Preallocated snapshot AoSoA transport
+
+A separate 16-lane, 64-byte-aligned AoSoA layout converts presentation
+snapshots to/from the existing SoA representation with no heap allocation
+inside either conversion. A host-only 4096-frame contract checks every
+coordinate, radius, tick, generation and deadline counter through a
+round-trip, plus C++ global new/delete interposition for those loops.
+The real guest contract additionally checks one snapshot produced from
+the actual physics world. This is **not** an alternate AoSoA physics solver
+and does **not** establish serial/parallel engine parity, general malloc
+interposition or WCET.
+
+See `docs/TEN_GATE_LEDGER.md` for ten numbered promotion gates and exact
+missing evidence for each. Keep native compiler, Qt, TSAN and target
+real-time claims explicitly marked unverified until executed.
