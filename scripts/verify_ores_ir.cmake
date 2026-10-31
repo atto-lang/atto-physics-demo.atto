@@ -28,8 +28,11 @@ foreach(signature IN ITEMS "physics_advance_axis|4" "physics_reflect_axis|4" "ph
     message(FATAL_ERROR "LLVM IR ${symbol} arity ${found_arity}, expected ${arity}")
   endif()
   foreach(arg IN LISTS args)
-    if(NOT arg MATCHES "^[ \t]*i64([ \t]|$)")
-      message(FATAL_ERROR "LLVM IR ${symbol} must take only i64 parameters: ${arg}")
+    # The native C++ caller passes plain i64 values. ABI-affecting parameter
+    # attributes (zeroext/signext/inreg/etc.) must not pass on type alone.
+    # Accept only bare i64, optional noundef, and an optional SSA name.
+    if(NOT arg MATCHES "^[ \t]*i64([ \t]+noundef)?([ \t]+%[A-Za-z0-9_.$-]+)?[ \t]*$")
+      message(FATAL_ERROR "LLVM IR ${symbol} has a non-C-ABI i64 parameter: ${arg}")
     endif()
   endforeach()
 endforeach()
