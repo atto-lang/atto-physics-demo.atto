@@ -22,6 +22,11 @@ target_link_libraries(physics_snapshot_ring_contract PRIVATE Threads::Threads)
 target_compile_options(physics_snapshot_ring_contract PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Werror>)
 add_test(NAME snapshot_ring_no_guest_contract COMMAND physics_snapshot_ring_contract)
+add_executable(physics_snapshot_layout_contract tests/snapshot_layout_contract.cpp)
+target_include_directories(physics_snapshot_layout_contract PRIVATE src/native)
+target_compile_options(physics_snapshot_layout_contract PRIVATE
+  $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Werror>)
+add_test(NAME snapshot_aosoa_layout_no_guest_contract COMMAND physics_snapshot_layout_contract)
 add_test(NAME llvm_ir_abi_preflight_no_guest_contract
   COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/ir_signature_contract.cmake")
 add_test(NAME llvm_ir_compilation_fail_closed_no_guest_contract
@@ -87,6 +92,16 @@ if(NOT ORES_PHYSICS_QUEUE_ONLY)
   target_link_libraries(physics_spsc_contract PRIVATE
     ores_physics_core ores_native_guest Threads::Threads)
   add_test(NAME bounded_spsc_physics_smoke COMMAND physics_spsc_contract)
+  add_executable(physics_engine_lifecycle_contract
+    tests/engine_lifecycle_contract.cpp src/native/PhysicsEngine.cpp)
+  target_link_libraries(physics_engine_lifecycle_contract PRIVATE
+    ores_physics_core ores_native_guest Threads::Threads)
+  target_compile_options(physics_engine_lifecycle_contract PRIVATE
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Werror>)
+  add_test(NAME real_oreslang_llvm_physics_lifecycle_contract
+    COMMAND physics_engine_lifecycle_contract)
+  set_tests_properties(real_oreslang_llvm_physics_lifecycle_contract
+    PROPERTIES TIMEOUT 80)
 
   if(ORES_PHYSICS_GUI)
     set(CMAKE_AUTOMOC ON)
