@@ -29,9 +29,7 @@ pub fnc physics_gravity(int velocity, int acceleration, int terminal): int {
 // No collision response, force/impulse, broadphase or parallel tasks yet.
 // Guest arithmetic is safe for *accepted* inputs: dx^2 + dy^2 is bounded
 // below (245760^2 + 143360^2), far below signed i64 maximum.
-pub fnc physics_discs_overlap(
-  int ax, int ay, int ar, int bx, int by, int br
-): int {
+pub fnc physics_discs_overlap(int ax, int ay, int ar, int bx, int by, int br): int {
   if (ar < 1792) { return -1; } fi
   if (ar > 3328) { return -1; } fi
   if (br < 1792) { return -1; } fi
