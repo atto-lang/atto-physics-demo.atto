@@ -111,3 +111,25 @@ It intentionally does not generate valid guest code or establish LLVM execution.
 For successful compilation and runtime proof, use the separate pinned real-guest
 gate below. This does not prevent out-of-band artifact tampering; protect build
 directories, provenance, and the compiler binary in the execution environment.
+
+## Reproducible native O0/O2 execution matrix (not yet executed)
+
+The native object optimization is explicit via `ORES_PHYSICS_GUEST_OPT_LEVEL`
+(only 0 or 2). `CMAKE_BUILD_TYPE=Debug` alone does not set guest optimization.
+`guest_optimization_config_no_guest_contract` tests positive O0/O2 and
+negative/invalid modes without compiling or fabricating guest IR.
+
+On an authorized Linux checkout with a genuine pinned compiler and Clang, run
+`scripts/run_pinned_llvm_guest_matrix.sh` with all five mandatory environment
+variables: `EXPECTED_PHYSICS_COMMIT_SHA`, `EXPECTED_LLVM_COMPILER_SHA256`,
+`EXPECTED_CLANG_SHA256`, `ORESLANG_LLVM_COMPILER` and `ORE_CLANG`.
+The SHA values must be independently approved before execution. The script
+rejects a dirty or mismatched physics checkout, invalid executable identities,
+missing pins and missing binaries. It configures independent guest O0 and O2
+builds, invokes CTest against real compiler-generated native objects, and
+compares the printed 1200-tick world digest. Both paths must emit the real-guest
+PASS marker; a host-only test cannot produce a valid result.
+
+The runner prints source commit/tree and input/output SHA-256 values for a
+receipt. It does not acquire compilers, copy private source, approve another
+organization, establish OS/hardware WCET, or certify zero allocations.

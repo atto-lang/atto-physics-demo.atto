@@ -89,5 +89,7 @@ int main() {
     CHECK(digest(a) == first_run_digest);
     CHECK(a.tick == 1200 && b.tick == 1200);
     CHECK(digest(a) != 0);
+    std::printf("PHYSICS_GUEST_1200_TICK_DIGEST=%016llx\n",
+                static_cast<unsigned long long>(first_run_digest));
     std::puts("REAL_ORESLANG_LLVM_PHYSICS_CONTRACT_PASS");
 }

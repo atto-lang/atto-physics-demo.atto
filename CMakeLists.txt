@@ -6,6 +6,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 option(ORES_PHYSICS_GUI "Build native Qt Quick desktop frontend" ON)
 option(ORES_PHYSICS_QUEUE_ONLY "Build only the compiler-independent snapshot ring contract" OFF)
+# Clang optimization applied to the actual compiler-generated Oreslang guest IR.
+# CMAKE_BUILD_TYPE alone does NOT control the native guest object.
+set(ORES_PHYSICS_GUEST_OPT_LEVEL "2" CACHE STRING "Guest IR object Clang optimization: 0 or 2")
+set_property(CACHE ORES_PHYSICS_GUEST_OPT_LEVEL PROPERTY STRINGS 0 2)
+if(NOT ORES_PHYSICS_GUEST_OPT_LEVEL MATCHES "^(0|2)$")
+  message(FATAL_ERROR "ORES_PHYSICS_GUEST_OPT_LEVEL must be exactly 0 or 2")
+endif()
 
 find_package(Threads REQUIRED)
 enable_testing()
@@ -24,6 +31,8 @@ target_include_directories(physics_numeric_envelope_contract PRIVATE src/native)
 target_compile_options(physics_numeric_envelope_contract PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Werror>)
 add_test(NAME physics_numeric_envelope_no_guest_contract COMMAND physics_numeric_envelope_contract)
+add_test(NAME guest_optimization_config_no_guest_contract
+  COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/guest_optimization_contract.cmake")
 
 if(ORES_PHYSICS_QUEUE_ONLY AND ORES_PHYSICS_GUI)
   message(FATAL_ERROR "Queue-only verification requires -DORES_PHYSICS_GUI=OFF")
@@ -48,7 +57,7 @@ if(NOT ORES_PHYSICS_QUEUE_ONLY)
             "${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_ores_ir.cmake"
     VERBATIM)
   add_custom_command(OUTPUT "${ORE_OBJ}"
-    COMMAND "${ORE_CLANG}" -O2 -x ir -c "${ORE_IR}" -o "${ORE_OBJ}"
+    COMMAND "${ORE_CLANG}" "-O${ORES_PHYSICS_GUEST_OPT_LEVEL}" -x ir -c "${ORE_IR}" -o "${ORE_OBJ}"
     DEPENDS "${ORE_IR}" "${ORE_CLANG}" VERBATIM)
   set_source_files_properties("${ORE_OBJ}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 
