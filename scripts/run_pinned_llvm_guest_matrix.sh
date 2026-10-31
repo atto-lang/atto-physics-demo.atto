@@ -47,14 +47,14 @@ printf 'PHYSICS_GUEST_GATE_COMPILER_SHA256=%s\n' "$compiler_sha"
 printf 'PHYSICS_GUEST_GATE_CLANG_SHA256=%s\n' "$clang_sha"
 "$ORE_CLANG" --version | head -n 1
 
-# Fresh, uniquely named build roots avoid stale guest output reuse and do
-# not destroy receipts from prior executions. Do not traverse a symlinked root.
+# Allocate one new run-specific build root instead of deleting existing output.
+# All O0/O2 native inputs and results must come from this one clean invocation.
 if [[ -L "$root/build" ]]; then
   echo "Refusing symlinked build root" >&2; exit 2;
 fi
 mkdir -p -- "$root/build"
 run_dir=$(mktemp -d "$root/build/pinned-native-guest.XXXXXXXX") || {
-  echo "Cannot allocate a fresh physics guest build directory" >&2; exit 2;
+  echo "Unable to create fresh physics guest build directory" >&2; exit 2;
 }
 printf 'PHYSICS_GUEST_GATE_BUILD_DIRECTORY=%s\n' "$run_dir"
 prior_digest=''
