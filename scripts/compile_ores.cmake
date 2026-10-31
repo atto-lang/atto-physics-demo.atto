@@ -1,5 +1,5 @@
 # Fail closed: publish only compiler-produced LLVM IR that passed ABI verification.
-foreach(required ORE_COMPILER ORE_SOURCE ORE_IR)
+foreach(required ORE_COMPILER ORE_CLANG ORE_SOURCE ORE_IR)
   if(NOT DEFINED ${required} OR "${${required}}" STREQUAL "")
     message(FATAL_ERROR "Missing ${required}")
   endif()
@@ -40,4 +40,27 @@ if(NOT "${verify_status}" STREQUAL "0")
   file(REMOVE "${ORE_IR}" "${ore_candidate}")
   message(FATAL_ERROR "Oreslang LLVM IR ABI verification failed: ${verify_error} (${verify_status})")
 endif()
+# The regular-expression ABI preflight is only structural. Actually parse,
+# verify and lower the candidate IR before publishing it as a trusted input.
+# Clang is the same pinned executable later used to build the native guest
+# object. The throwaway probe is never linked or credited as guest execution.
+set(ore_probe "${ORE_IR}.verify-probe.o")
+file(REMOVE "${ore_probe}")
+execute_process(
+  COMMAND "${ORE_CLANG}" -x ir -c "${ore_candidate}" -o "${ore_probe}"
+  RESULT_VARIABLE clang_status
+  OUTPUT_VARIABLE clang_output
+  ERROR_VARIABLE clang_error
+)
+if(NOT "${clang_status}" STREQUAL "0" OR NOT EXISTS "${ore_probe}")
+  file(REMOVE "${ORE_IR}" "${ore_candidate}" "${ore_probe}")
+  message(FATAL_ERROR
+    "Native LLVM parse/codegen verification failed or produced no object: ${clang_error} (${clang_status})")
+endif()
+file(SIZE "${ore_probe}" ore_probe_size)
+if(ore_probe_size EQUAL 0)
+  file(REMOVE "${ORE_IR}" "${ore_candidate}" "${ore_probe}")
+  message(FATAL_ERROR "Native LLVM verification produced an empty object")
+endif()
+file(REMOVE "${ore_probe}")
 file(RENAME "${ore_candidate}" "${ORE_IR}")
