@@ -31,6 +31,14 @@ ctest --test-dir build/queue --output-on-failure
 This gate is meaningful for C++ snapshot transport, but is **not** a test of
 the Oreslang compiler, native guest arithmetic, Qt painting, or hard RT.
 
+## Host-only IR preflight (not guest execution)
+
+`ctest` in queue-only mode also runs a fixture-based LLVM IR ABI parser contract.
+It rejects comment-only/declaration-only symbols, incorrect argument widths or
+arity, internal linkage and an incompatible calling convention. The build
+checks compiler-produced IR using the same verifier; passing fixture tests
+is **not** evidence that Oreslang compiled, linked, or executed.
+
 ## Required guest execution gate
 
 ```sh
