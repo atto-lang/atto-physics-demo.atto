@@ -41,6 +41,13 @@ int main() {
     ores::reset_world(a);
     ores::reset_world(b);
     CHECK(digest(a) == digest(b));
+    ores::step_world(a);
+    // Independent fixed-point oracle, checking actual linked .ores execution.
+    CHECK(a.x[0] == 36 * ores::kScale - 4 * 97);
+    CHECK(a.y[0] == 28 * ores::kScale - 75 + 42);
+    CHECK(a.vx[0] == -4 * 97);
+    CHECK(a.vy[0] == -75 + 42);
+    ores::reset_world(a);
     for (std::size_t n = 0; n < 1200; ++n) {
         ores::step_world(a);
         ores::step_world(b);
