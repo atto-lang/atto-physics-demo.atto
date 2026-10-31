@@ -7,7 +7,7 @@ file(READ "${ORE_IR}" ir)
 # The C++ caller requires unmangled C-ABI functions with signed i64 returns
 # and the specified count of i64 arguments. In particular, do not accept a
 # mere substring in a comment, a declaration, or a non-default calling convention.
-foreach(signature IN ITEMS "physics_advance_axis|4" "physics_reflect_axis|4" "physics_gravity|3")
+foreach(signature IN ITEMS "physics_advance_axis|4" "physics_reflect_axis|4" "physics_gravity|3" "physics_discs_overlap|6")
   string(REPLACE "|" ";" parts "${signature}")
   list(GET parts 0 symbol)
   list(GET parts 1 arity)
