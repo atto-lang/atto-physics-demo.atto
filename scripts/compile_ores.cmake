@@ -16,7 +16,8 @@ endif()
 # Never leave an old or unverified final IR output behind on failure.
 # The temporary file is in the same directory for an atomic rename on success.
 set(ore_candidate "${ORE_IR}.candidate")
-file(REMOVE "${ORE_IR}" "${ore_candidate}")
+set(ore_probe "${ORE_IR}.verify-probe.o")
+file(REMOVE "${ORE_IR}" "${ore_candidate}" "${ore_probe}")
 execute_process(
   COMMAND "${ORE_COMPILER}" --target=host "${ORE_SOURCE}"
   RESULT_VARIABLE status
@@ -24,7 +25,7 @@ execute_process(
   ERROR_VARIABLE diagnostics
 )
 if(NOT "${status}" STREQUAL "0")
-  file(REMOVE "${ORE_IR}" "${ore_candidate}")
+  file(REMOVE "${ORE_IR}" "${ore_candidate}" "${ore_probe}")
   message(FATAL_ERROR "Native Oreslang LLVM compilation failed: ${diagnostics} (${status})")
 endif()
 
@@ -37,15 +38,13 @@ execute_process(
   ERROR_VARIABLE verify_error
 )
 if(NOT "${verify_status}" STREQUAL "0")
-  file(REMOVE "${ORE_IR}" "${ore_candidate}")
+  file(REMOVE "${ORE_IR}" "${ore_candidate}" "${ore_probe}")
   message(FATAL_ERROR "Oreslang LLVM IR ABI verification failed: ${verify_error} (${verify_status})")
 endif()
 # The regular-expression ABI preflight is only structural. Actually parse,
 # verify and lower the candidate IR before publishing it as a trusted input.
 # Clang is the same pinned executable later used to build the native guest
 # object. The throwaway probe is never linked or credited as guest execution.
-set(ore_probe "${ORE_IR}.verify-probe.o")
-file(REMOVE "${ore_probe}")
 execute_process(
   COMMAND "${ORE_CLANG}" -x ir -c "${ore_candidate}" -o "${ore_probe}"
   RESULT_VARIABLE clang_status
