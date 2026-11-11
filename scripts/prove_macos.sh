@@ -18,7 +18,7 @@ cmake -S "$root" -B "$build" -DCMAKE_BUILD_TYPE=Release \
   "-DORESLANG_LLVM_COMPILER=$ORESLANG_LLVM_COMPILER" "-DORE_CLANG=$ORE_CLANG"
 cmake --build "$build" --parallel 4
 ctest --test-dir "$build" --output-on-failure --no-tests=error
-"$QT_PREFIX/bin/macdeployqt" "$build/oreslang_physics.app" "-qmldir=$root/ui" -always-overwrite
+"$QT_PREFIX/bin/macdeployqt" "$build/oreslang_physics.app" "-qmldir=$root/ui" "-libpath=$QT_PREFIX/lib" -always-overwrite
 # No Qt environment search paths; load the frameworks/QML/plugins in the bundle.
 env -u QML_IMPORT_PATH -u QML2_IMPORT_PATH -u QT_PLUGIN_PATH \
   "ATTO_PHYSICS_GUI_PROOF=$build/evidence" \
