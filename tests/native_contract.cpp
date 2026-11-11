@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <initializer_list>
+#include <limits>
 
 extern "C" {
 std::int64_t physics_advance_axis(std::int64_t, std::int64_t, std::int64_t, std::int64_t);
@@ -75,6 +76,11 @@ int main() {
     CHECK(physics_discs_overlap(10000, 10000, -1, 12000, 10000, 2000) == -1);
     CHECK(physics_discs_overlap(10000, 10000, 5000, 12000, 10000, 2000) == -1);
     CHECK(physics_discs_overlap(10000, 10000, 2000, 245760, 10000, 2000) == -1);
+    CHECK(physics_discs_overlap(std::numeric_limits<std::int64_t>::min(),
+                               10000, 2000, 10000, 10000, 2000) == -1);
+    CHECK(physics_discs_overlap(10000, 10000,
+                               std::numeric_limits<std::int64_t>::max(),
+                               10000, 10000, 2000) == -1);
     for (std::int64_t n = 0; n < 96; ++n) {
         const auto ax = 10000 + n * 31;
         const auto ay = 10000 + n * 17;
@@ -91,6 +97,14 @@ int main() {
     ores::reset_world(a);
     ores::reset_world(b);
     CHECK(digest(a) == digest(b));
+    for (std::size_t i = 0; i < ores::kBodies; ++i) {
+        // Independent initialization oracle for compiled guest functions.
+        CHECK(a.radius[i] == (7 + static_cast<std::int64_t>(i % 7)) * 256);
+        CHECK(a.x[i] == (36 + static_cast<std::int64_t>(i % 16) * 57) * 256);
+        CHECK(a.y[i] == (28 + static_cast<std::int64_t>(i / 16) * 36) * 256);
+        CHECK(a.vx[i] == (static_cast<std::int64_t>(i % 9) - 4) * 97);
+        CHECK(a.vy[i] == -(static_cast<std::int64_t>(i % 11) * 51 + 75));
+    }
     check_world_envelope(a);
     ores::step_world(a);
     // Independent fixed-point oracle, checking actual linked .ores execution.

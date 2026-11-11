@@ -14,7 +14,7 @@ collision islands, rendering APIs, or hard-real-time WCET proofs are implemented
 
 | Layer | Implementation | Steady-state behavior |
 | --- | --- | --- |
-| Motion, gravity and boundary responses | `src/physics/physics.ores` | Native AOT i64 calculations |
+| Motion, gravity and boundary responses | `src/physics/physics.atto` | Native AOT i64 calculations |
 | Fixed-capacity SoA and frame dispatch | `src/native/PhysicsCore.cpp` | No heap allocation during ticks |
 | Scheduling and snapshot transport | `PhysicsEngine.cpp` | Dedicated thread, fixed step, bounded SPSC queue |
 | Rendering/UI | Qt 6 + `ui/Main.qml` | May allocate; never runs in the simulation thread |
@@ -84,3 +84,30 @@ physics fallback or skipped native integration tests are accepted as a pass.
 Keep provenance of source revision, LLVM compiler revision, Clang version,
 Qt version, platform, test output, and sanitizer runs for any verification
 claim. A screenshot of animated circles proves rendering, not physics safety.
+
+## Reproducible macOS execution proof
+
+The isolated proof branch reconciles #1–#9 and #12. Guest source is now
+`physics.atto`. Domain validation is split into bounded guest helpers to fit the
+real frontend's guarded-return rules. World initialization is also guest code.
+The host retains fixed storage, scalar FFI dispatch, scheduling and rendering.
+Qt's QML registration requires a derivable canvas type; the previous `final`
+class prevented a genuine Qt build.
+
+```sh
+ORESLANG_LLVM_COMPILER=/absolute/oreslang-llvmc \
+ORE_CLANG=/absolute/clang QT_PREFIX=/absolute/qt \
+  bash scripts/prove_macos.sh
+```
+
+Run from a clean commit. This performs pinned O0/O2 real guest tests, builds a
+fresh Qt app bundle, deploys its frameworks/QML/plugins, and executes the packaged
+app with an opt-in graphical harness. The harness sends mouse clicks to the
+actual QML Pause/Reset buttons and compares captured canvas pixels: moving,
+paused/stable, reset, resumed/moving, and a second identical reset. Seven PNGs
+are retained beside the zip. The optional harness requires Qt Test; ordinary
+builds exclude it. Inspect PNGs as well as the PASS marker. The output records
+source/tree/compiler/Clang pins, numerical digests, object hashes and package
+path. The native suite tests 12 restart generations and wall responses plus the
+supported disc-overlap predicate; it does not claim disc-to-disc response,
+hard real time, signing/notarization, or other-platform qualification.

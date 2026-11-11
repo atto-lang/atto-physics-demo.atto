@@ -5,6 +5,11 @@
 // These are REAL Oreslang functions: oreslang-llvmc -> LLVM IR -> Clang object.
 // Do not replace them with host-language physics implementations.
 extern "C" {
+std::int64_t physics_initial_radius(std::int64_t);
+std::int64_t physics_initial_x(std::int64_t);
+std::int64_t physics_initial_y(std::int64_t);
+std::int64_t physics_initial_vx(std::int64_t);
+std::int64_t physics_initial_vy(std::int64_t);
 std::int64_t physics_advance_axis(std::int64_t position, std::int64_t velocity,
                                   std::int64_t lower, std::int64_t upper);
 std::int64_t physics_reflect_axis(std::int64_t position, std::int64_t velocity,
@@ -19,13 +24,12 @@ void reset_world(World& w) noexcept {
     // Fixed initial positions, a structure of five preallocated scalar columns.
     // Nothing is allocated in step_world.
     for (std::size_t i = 0; i < kBodies; ++i) {
-        const auto col = static_cast<std::int64_t>(i % 16);
-        const auto row = static_cast<std::int64_t>(i / 16);
-        w.radius[i] = (7 + static_cast<std::int64_t>(i % 7)) * kScale;
-        w.x[i] = (36 + col * 57) * kScale;
-        w.y[i] = (28 + row * 36) * kScale;
-        w.vx[i] = (static_cast<std::int64_t>(i % 9) - 4) * 97;
-        w.vy[i] = -(static_cast<std::int64_t>(i % 11) * 51 + 75);
+        const auto index = static_cast<std::int64_t>(i);
+        w.radius[i] = physics_initial_radius(index);
+        w.x[i] = physics_initial_x(index);
+        w.y[i] = physics_initial_y(index);
+        w.vx[i] = physics_initial_vx(index);
+        w.vy[i] = physics_initial_vy(index);
     }
 }
 

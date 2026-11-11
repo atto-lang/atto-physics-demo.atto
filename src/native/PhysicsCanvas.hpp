@@ -4,7 +4,7 @@
 #include <QQuickPaintedItem>
 #include <mutex>
 
-class PhysicsCanvas final : public QQuickPaintedItem {
+class PhysicsCanvas : public QQuickPaintedItem {
     Q_OBJECT
     Q_PROPERTY(bool paused READ paused WRITE setPaused NOTIFY pausedChanged)
     Q_PROPERTY(qulonglong tick READ tick NOTIFY tickChanged)

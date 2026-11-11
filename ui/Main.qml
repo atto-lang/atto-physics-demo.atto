@@ -42,10 +42,12 @@ ApplicationWindow {
             }
             Item { Layout.fillWidth: true }
             Button {
+                objectName: "pauseButton"
                 text: field.paused ? "Resume" : "Pause"
                 onClicked: field.paused = !field.paused
             }
             Button {
+                objectName: "resetButton"
                 text: "Reset"
                 onClicked: field.reset()
             }
@@ -61,6 +63,7 @@ ApplicationWindow {
             clip: true
             PhysicsCanvas {
                 id: field
+                objectName: "physicsField"
                 anchors.fill: parent
                 Timer {
                     interval: 16

@@ -30,19 +30,13 @@ pub fnc physics_gravity(int velocity, int acceleration, int terminal): int {
 // Guest arithmetic is safe for *accepted* inputs: dx^2 + dy^2 is bounded
 // below (245760^2 + 143360^2), far below signed i64 maximum.
 pub fnc physics_discs_overlap(int ax, int ay, int ar, int bx, int by, int br): int {
-  if (ar < 1792) { return -1; } fi
-  if (ar > 3328) { return -1; } fi
-  if (br < 1792) { return -1; } fi
-  if (br > 3328) { return -1; } fi
-  if (ax < ar) { return -1; } fi
-  if (bx < br) { return -1; } fi
-  if (ay < ar) { return -1; } fi
-  if (by < br) { return -1; } fi
-  if (ax > 245760 - ar) { return -1; } fi
-  if (bx > 245760 - br) { return -1; } fi
-  if (ay > 143360 - ar) { return -1; } fi
-  if (by > 143360 - br) { return -1; } fi
+  if (physics_disc_valid(ax, ay, ar) == 0) { return -1; } fi
+  if (physics_disc_valid(bx, by, br) == 0) { return -1; } fi
 
+  return physics_valid_discs_overlap(ax, ay, ar, bx, by, br);
+}
+
+fnc physics_valid_discs_overlap(int ax, int ay, int ar, int bx, int by, int br): int {
   const dx: int = ax - bx;
   const dy: int = ay - by;
   const radii: int = ar + br;
@@ -51,3 +45,25 @@ pub fnc physics_discs_overlap(int ax, int ay, int ar, int bx, int by, int br): i
   if (separation_squared < contact_squared) { return 1; } fi
   return 0;
 }
+
+// One bounded domain check reused for each disc (six guarded exits).
+fnc physics_disc_valid(int x, int y, int radius): int {
+  if (radius < 1792) { return 0; } fi
+  if (radius > 3328) { return 0; } fi
+  if (x < radius) { return 0; } fi
+  if (y < radius) { return 0; } fi
+  if (x > 245760 - radius) { return 0; } fi
+  if (y > 143360 - radius) { return 0; } fi
+  return 1;
+}
+
+// Deterministic world initialization also belongs to the guest. The native
+// adapter only stores these scalar results in preallocated render columns.
+pub fnc physics_initial_radius(int index): int { return (7 + index % 7) * 256; }
+pub fnc physics_initial_x(int index): int { return (36 + (index % 16) * 57) * 256; }
+pub fnc physics_initial_y(int index): int {
+  if (index > 15) { return physics_initial_y(index - 16) + 9216; } fi
+  return 7168;
+}
+pub fnc physics_initial_vx(int index): int { return (index % 9 - 4) * 97; }
+pub fnc physics_initial_vy(int index): int { return -(index % 11 * 51 + 75); }

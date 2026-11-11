@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 option(ORES_PHYSICS_GUI "Build native Qt Quick desktop frontend" ON)
+option(ORES_PHYSICS_GUI_PROOF "Include opt-in graphical mouse/render proof harness" OFF)
 option(ORES_PHYSICS_QUEUE_ONLY "Build only the compiler-independent snapshot ring contract" OFF)
 # Clang optimization applied to the actual compiler-generated Oreslang guest IR.
 # CMAKE_BUILD_TYPE alone does NOT control the native guest object.
@@ -61,7 +62,7 @@ if(NOT ORES_PHYSICS_QUEUE_ONLY)
   find_program(ORESLANG_LLVM_COMPILER NAMES oreslang-llvmc REQUIRED)
   find_program(ORE_CLANG NAMES clang REQUIRED)
 
-  set(ORE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/physics/physics.ores")
+  set(ORE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/physics/physics.atto")
   set(ORE_IR "${CMAKE_CURRENT_BINARY_DIR}/native-physics.ll")
   set(ORE_OBJ "${CMAKE_CURRENT_BINARY_DIR}/native-physics.o")
 
@@ -120,11 +121,20 @@ if(NOT ORES_PHYSICS_QUEUE_ONLY)
       src/native/PhysicsCanvas.hpp
       src/native/PhysicsEngine.cpp
       src/native/PhysicsEngine.hpp)
+    set_target_properties(oreslang_physics PROPERTIES MACOSX_BUNDLE TRUE
+      MACOSX_BUNDLE_BUNDLE_NAME "AttoLang Physics"
+      MACOSX_BUNDLE_GUI_IDENTIFIER "org.attolang.physics")
     qt_add_resources(oreslang_physics "physics_qml"
       PREFIX "/"
       FILES ui/Main.qml)
     target_link_libraries(oreslang_physics PRIVATE
       Qt6::Quick Qt6::Qml Qt6::QuickControls2 Threads::Threads
       ores_physics_core ores_native_guest)
+    if(ORES_PHYSICS_GUI_PROOF)
+      find_package(Qt6 REQUIRED COMPONENTS Test)
+      target_sources(oreslang_physics PRIVATE tests/gui_proof.cpp)
+      target_link_libraries(oreslang_physics PRIVATE Qt6::Test)
+      target_compile_definitions(oreslang_physics PRIVATE ORES_PHYSICS_GUI_PROOF=1)
+    endif()
   endif()
 endif()
