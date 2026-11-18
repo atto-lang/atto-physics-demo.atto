@@ -2,6 +2,10 @@
 
 Physics simulation examples exploring numerical computation and concurrency in AttoLang.
 
+## Naming migration and language authority
+
+This repository is maintained at [atto-lang/atto-physics-demo.atto](https://github.com/atto-lang/atto-physics-demo.atto); use `https://github.com/atto-lang/atto-physics-demo.atto.git` for Git remotes and canonical `.atto` source examples. The normative language contract is [atto-spec](https://github.com/atto-lang/atto-spec), with executable guest evidence tracked by [atto-platform-conformance](https://github.com/atto-lang/atto-platform-conformance). Follow current ownership, borrowing, effects, actor, and syntax rules there; do not infer implemented features from a README or unexecuted CI.
+
 ## Demonstration focus
 
 Numerical simulation, state updates, and actor-safe computation.
@@ -32,6 +36,6 @@ This README describes the demonstration's intended purpose. Current executable c
 
 **Security and portability boundary:** State numerical tolerance, timestep, units, stability, bounded memory and exact backend evidence; avoid asserting deterministic cross-CPU results without tests.
 
-AttoLang is the public name; preserve existing Oreslang/.ores compatibility and use canonical .atto for new portable library source. This README defines scope, not feature readiness.
+AttoLang is the canonical project name; new source, examples and documentation use `.atto` and the `atto-lang` repository organization. This README defines scope, not feature readiness.
 
 **Acceptance:** name exact source SHA/tree, runtime/toolchain, positive and negative checks and execution receipt before claiming support. Host-only tests and empty CI steps do not prove guest execution.
