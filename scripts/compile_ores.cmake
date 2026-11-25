@@ -1,0 +1,65 @@
+# Fail closed: publish only compiler-produced LLVM IR that passed ABI verification.
+foreach(required ORE_COMPILER ORE_CLANG ORE_SOURCE ORE_IR)
+  if(NOT DEFINED ${required} OR "${${required}}" STREQUAL "")
+    message(FATAL_ERROR "Missing ${required}")
+  endif()
+endforeach()
+if(NOT EXISTS "${ORE_SOURCE}")
+  message(FATAL_ERROR "Missing real Oreslang physics source: ${ORE_SOURCE}")
+endif()
+get_filename_component(ore_source_absolute "${ORE_SOURCE}" REALPATH)
+get_filename_component(ore_ir_absolute "${ORE_IR}" ABSOLUTE)
+if(ore_source_absolute STREQUAL ore_ir_absolute)
+  message(FATAL_ERROR "Refusing to overwrite the Oreslang physics source with generated LLVM IR")
+endif()
+
+# Never leave an old or unverified final IR output behind on failure.
+# The temporary file is in the same directory for an atomic rename on success.
+set(ore_candidate "${ORE_IR}.candidate")
+set(ore_probe "${ORE_IR}.verify-probe.o")
+file(REMOVE "${ORE_IR}" "${ore_candidate}" "${ore_probe}")
+execute_process(
+  COMMAND "${ORE_COMPILER}" --target=host "${ORE_SOURCE}"
+  RESULT_VARIABLE status
+  OUTPUT_FILE "${ore_candidate}"
+  ERROR_VARIABLE diagnostics
+)
+if(NOT "${status}" STREQUAL "0")
+  file(REMOVE "${ORE_IR}" "${ore_candidate}" "${ore_probe}")
+  message(FATAL_ERROR "Native Oreslang LLVM compilation failed: ${diagnostics} (${status})")
+endif()
+
+# Invoke the verifier out of process so FATAL_ERROR cannot bypass cleanup.
+execute_process(
+  COMMAND "${CMAKE_COMMAND}" "-DORE_IR=${ore_candidate}"
+          -P "${CMAKE_CURRENT_LIST_DIR}/verify_ores_ir.cmake"
+  RESULT_VARIABLE verify_status
+  OUTPUT_VARIABLE verify_output
+  ERROR_VARIABLE verify_error
+)
+if(NOT "${verify_status}" STREQUAL "0")
+  file(REMOVE "${ORE_IR}" "${ore_candidate}" "${ore_probe}")
+  message(FATAL_ERROR "Oreslang LLVM IR ABI verification failed: ${verify_error} (${verify_status})")
+endif()
+# The regular-expression ABI preflight is only structural. Actually parse,
+# verify and lower the candidate IR before publishing it as a trusted input.
+# Clang is the same pinned executable later used to build the native guest
+# object. The throwaway probe is never linked or credited as guest execution.
+execute_process(
+  COMMAND "${ORE_CLANG}" -x ir -c "${ore_candidate}" -o "${ore_probe}"
+  RESULT_VARIABLE clang_status
+  OUTPUT_VARIABLE clang_output
+  ERROR_VARIABLE clang_error
+)
+if(NOT "${clang_status}" STREQUAL "0" OR NOT EXISTS "${ore_probe}")
+  file(REMOVE "${ORE_IR}" "${ore_candidate}" "${ore_probe}")
+  message(FATAL_ERROR
+    "Native LLVM parse/codegen verification failed or produced no object: ${clang_error} (${clang_status})")
+endif()
+file(SIZE "${ore_probe}" ore_probe_size)
+if(ore_probe_size EQUAL 0)
+  file(REMOVE "${ORE_IR}" "${ore_candidate}" "${ore_probe}")
+  message(FATAL_ERROR "Native LLVM verification produced an empty object")
+endif()
+file(REMOVE "${ore_probe}")
+file(RENAME "${ore_candidate}" "${ORE_IR}")

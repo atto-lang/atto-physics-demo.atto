@@ -1,0 +1,49 @@
+name: Host-only C++ / QML compile checks (NOT guest execution)
+on:
+  push:
+    branches: ["feat/**", "fix/**"]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host-code-static:
+    name: Host-only C++ syntax (no .atto guest compiled)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check host C++20 files without guest stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          clang++ --version
+          for file in src/native/PhysicsCore.cpp src/native/PhysicsEngine.cpp tests/native_contract.cpp tests/spsc_contract.cpp; do
+            clang++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -fsyntax-only -Isrc/native "$file"
+          done
+          echo HOST_CPP_SYNTAX_ONLY_PASS
+  qt-qml-static:
+    name: Qt/QML host syntax (not an executable guest)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install genuine Qt 6 header and QML parser packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends qt6-base-dev qt6-declarative-dev qt6-declarative-dev-tools pkg-config clang
+      - name: Check Qt Quick C++ headers and QML syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          cflags=$(pkg-config --cflags Qt6Quick Qt6Qml Qt6QuickControls2)
+          clang++ -std=c++20 -Wall -Wextra -Wpedantic -Werror -fsyntax-only -Isrc/native $cflags src/native/PhysicsCanvas.cpp src/native/main.cpp
+          qmlformat=$(command -v qmlformat || true)
+          if [ -z "$qmlformat" ]; then qmlformat=/usr/lib/qt6/bin/qmlformat; fi
+          test -x "$qmlformat"
+          "$qmlformat" ui/Main.qml > /dev/null
+          echo QT_QML_SYNTAX_ONLY_PASS
