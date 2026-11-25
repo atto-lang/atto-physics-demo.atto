@@ -15,6 +15,15 @@ target_link_libraries(physics_snapshot_ring_contract PRIVATE Threads::Threads)
 target_compile_options(physics_snapshot_ring_contract PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Werror>)
 add_test(NAME snapshot_ring_no_guest_contract COMMAND physics_snapshot_ring_contract)
+add_test(NAME llvm_ir_abi_preflight_no_guest_contract
+  COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/ir_signature_contract.cmake")
+add_test(NAME llvm_ir_compilation_fail_closed_no_guest_contract
+  COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_failure_cleanup_contract.cmake")
+add_executable(physics_numeric_envelope_contract tests/physics_domain_contract.cpp)
+target_include_directories(physics_numeric_envelope_contract PRIVATE src/native)
+target_compile_options(physics_numeric_envelope_contract PRIVATE
+  $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Werror>)
+add_test(NAME physics_numeric_envelope_no_guest_contract COMMAND physics_numeric_envelope_contract)
 
 if(ORES_PHYSICS_QUEUE_ONLY AND ORES_PHYSICS_GUI)
   message(FATAL_ERROR "Queue-only verification requires -DORES_PHYSICS_GUI=OFF")
@@ -34,11 +43,13 @@ if(NOT ORES_PHYSICS_QUEUE_ONLY)
             "-DORE_SOURCE=${ORE_SOURCE}"
             "-DORE_IR=${ORE_IR}"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/compile_ores.cmake"
-    DEPENDS "${ORE_SOURCE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/compile_ores.cmake"
+    DEPENDS "${ORE_SOURCE}" "${ORESLANG_LLVM_COMPILER}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/scripts/compile_ores.cmake"
+            "${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_ores_ir.cmake"
     VERBATIM)
   add_custom_command(OUTPUT "${ORE_OBJ}"
     COMMAND "${ORE_CLANG}" -O2 -x ir -c "${ORE_IR}" -o "${ORE_OBJ}"
-    DEPENDS "${ORE_IR}" VERBATIM)
+    DEPENDS "${ORE_IR}" "${ORE_CLANG}" VERBATIM)
   set_source_files_properties("${ORE_OBJ}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 
   add_library(ores_physics_core STATIC src/native/PhysicsCore.cpp)

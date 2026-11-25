@@ -16,6 +16,33 @@
 - Arithmetic overflow and native ABI failures are not yet formally excluded
   over every reachable state; whole-program invariants/WCET remain pending.
 
+## Closed numeric envelope: current fixed initializer only
+
+The new host-only `physics_numeric_envelope_no_guest_contract` checks the 192
+initializer coordinates and radii at compile time. Bounds currently are:
+- 1/256 pixel units, radius in [1792, 3328], width 245760, height 143360.
+- Horizontal speed magnitude <= 388.
+- Initial vertical speed magnitude <= 585; acceleration is +42/tick, terminal
+  upward/downward signed limit at +1792; wall reflection can negate the current
+  speed, so throughout the reachable run |vy| <= 1792.
+- All starting centers are at least their radius from each boundary.
+- Each step's unclamped coordinate sum is within [0, extent] because the radius
+  is >= both speed bounds. Reflection preserves the speed envelope and the
+  position clamp restores [radius, extent-radius].
+- Signed negation, gravity addition and coordinate addition therefore stay
+  well inside 64-bit signed range for a world initialized by `reset_world`.
+
+These compile-time claims are conditional on the concrete initializer and
+step logic remaining aligned, and cannot establish that a missing/unverified
+Oreslang compiler produces conformant guest code. The linked guest contract
+now also checks speed/radius/position envelopes on every tick, boundary
+oracles, and deterministic 1200-tick reset/replay. It has NOT yet executed
+against a pinned compiler at this head.
+
+**Not proven:** arbitrary caller-supplied inputs to exported `.ores` functions,
+arbitrary mutated World states, unbounded tick-counter lifetime, native guest
+behavior, complete program memory safety, WCET, or thread scheduling.
+
 ## Evidence gates (all required before calling it hard real-time)
 
 1. Run `oreslang-llvmc` on the actual `.ores` sources at pinned SHA.

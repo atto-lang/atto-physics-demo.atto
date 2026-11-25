@@ -34,7 +34,7 @@ void step_world(World& w) noexcept {
     // This v1 does not implement body-to-body collisions or parallel tasks.
     for (std::size_t i = 0; i < kBodies; ++i) {
         const std::int64_t r = w.radius[i];
-        const std::int64_t next_vy = physics_gravity(w.vy[i], 42, 7 * kScale);
+        const std::int64_t next_vy = physics_gravity(w.vy[i], kGravityPerTick, kTerminalVerticalSpeed);
         const std::int64_t next_vx = physics_reflect_axis(w.x[i], w.vx[i], r, kWidth - r);
         const std::int64_t next_vy_bounced =
             physics_reflect_axis(w.y[i], next_vy, r, kHeight - r);
