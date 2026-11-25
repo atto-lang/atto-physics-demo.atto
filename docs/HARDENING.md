@@ -39,6 +39,20 @@ arity, internal linkage and an incompatible calling convention. The build
 checks compiler-produced IR using the same verifier; passing fixture tests
 is **not** evidence that Oreslang compiled, linked, or executed.
 
+## Conditional fixed-point domain gate (no guest)
+
+The queue-only CTest set now also includes a C++20 consteval check covering all
+192 initializer slots, fixed-point scale, radius, position and velocity bounds.
+The core header enforces compile-time constants that close under gravity,
+wall reflection and clamping. These are source-level invariants for the
+reset-world state machine and are **not** a proof about arbitrary public FFI
+inputs, unbounded tick counters, hard RT or actual compiled Oreslang behavior.
+
+The compiler-backed `tests/native_contract.cpp` remains mandatory and now
+checks every body's domain on each of 1200 ticks, extra wall/terminal
+boundary cases and replay after reset. Without exact-head real `.ores` guest
+execution that test is an unexecuted conformance gate, not a pass.
+
 ## Required guest execution gate
 
 ```sh
@@ -79,3 +93,21 @@ A CI job that fails before the first step cannot prove implementation failure
 or success. If source-org Actions cannot admit jobs, use only an authorized
 **private** carrier and verify every tree/blob at the exact tested SHA. Never
 expose private source in public mirrors or persist credentials in artifacts.
+
+## Verified IR publication and incremental build integrity
+
+The compiler writes to a `.candidate` path, not the eventual `native-physics.ll`.
+A fresh, independent CMake process verifies the candidate's LLVM signature
+before the script atomically renames it to the final output. A nonzero compiler
+exit or ABI rejection removes both the candidate and any stale final IR.
+This ensures a rejected compiler invocation cannot leave an apparently valid
+build output for a subsequent incremental build. The build graph also depends
+on the compiler executable and ABI verifier script; changing either forces
+recompilation rather than reusing stale IR. The object target depends on Clang.
+
+`llvm_ir_compilation_fail_closed_no_guest_contract` exercises negative-only
+compiler failure and, on Unix, the rejection of zero-exit non-IR output.
+It intentionally does not generate valid guest code or establish LLVM execution.
+For successful compilation and runtime proof, use the separate pinned real-guest
+gate below. This does not prevent out-of-band artifact tampering; protect build
+directories, provenance, and the compiler binary in the execution environment.
