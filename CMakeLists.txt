@@ -126,5 +126,11 @@ if(NOT ORES_PHYSICS_QUEUE_ONLY)
     target_link_libraries(oreslang_physics PRIVATE
       Qt6::Quick Qt6::Qml Qt6::QuickControls2 Threads::Threads
       ores_physics_core ores_native_guest)
+    # Load the real QML resource and observe a live guest-driven tick offscreen.
+    add_test(NAME qt_physics_qml_smoke
+      COMMAND $<TARGET_FILE:oreslang_physics> --smoke-test)
+    set_tests_properties(qt_physics_qml_smoke PROPERTIES
+      ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
+      TIMEOUT 15)
   endif()
 endif()
