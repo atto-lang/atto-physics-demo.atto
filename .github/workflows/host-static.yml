@@ -8,7 +8,7 @@ permissions:
   contents: read
 jobs:
   host-code-static:
-    name: Host-only C++ syntax (no .ores guest compiled)
+    name: Host-only C++ syntax (no .atto guest compiled)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
