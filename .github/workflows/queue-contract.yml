@@ -1,0 +1,36 @@
+name: Physics queue (not LLVM guest proof)
+
+on:
+  push:
+    branches: ["feat/**", "fix/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot-ring:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [ordinary, asan-ubsan]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure compiler-independent test
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.mode }}" = asan-ubsan ]; then
+            cmake -S . -B build/queue -DORES_PHYSICS_GUI=OFF -DORES_PHYSICS_QUEUE_ONLY=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          else
+            cmake -S . -B build/queue -DORES_PHYSICS_GUI=OFF -DORES_PHYSICS_QUEUE_ONLY=ON -DCMAKE_BUILD_TYPE=Release
+          fi
+      - name: Build and execute queue contract
+        run: |
+          cmake --build build/queue --parallel 2
+          ctest --test-dir build/queue --output-on-failure
