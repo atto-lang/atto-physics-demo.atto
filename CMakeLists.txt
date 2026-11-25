@@ -22,8 +22,20 @@ target_link_libraries(physics_snapshot_ring_contract PRIVATE Threads::Threads)
 target_compile_options(physics_snapshot_ring_contract PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Werror>)
 add_test(NAME snapshot_ring_no_guest_contract COMMAND physics_snapshot_ring_contract)
+add_executable(physics_snapshot_layout_contract tests/snapshot_layout_contract.cpp)
+target_include_directories(physics_snapshot_layout_contract PRIVATE src/native)
+target_compile_options(physics_snapshot_layout_contract PRIVATE
+  $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Werror>)
+add_test(NAME snapshot_aosoa_layout_no_guest_contract COMMAND physics_snapshot_layout_contract)
 add_test(NAME llvm_ir_abi_preflight_no_guest_contract
   COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/ir_signature_contract.cmake")
+# Separate compiler-independent static ABI checks from real Clang IR parsing.
+find_program(ORE_HOST_IR_CLANG NAMES clang)
+if(ORE_HOST_IR_CLANG)
+  add_test(NAME llvm_ir_native_parser_no_guest_contract
+    COMMAND "${CMAKE_COMMAND}" "-DORE_TEST_CLANG=${ORE_HOST_IR_CLANG}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/ir_native_parser_contract.cmake")
+endif()
 add_test(NAME llvm_ir_compilation_fail_closed_no_guest_contract
   COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_failure_cleanup_contract.cmake")
 add_executable(physics_numeric_envelope_contract tests/physics_domain_contract.cpp)
@@ -56,10 +68,11 @@ if(NOT ORES_PHYSICS_QUEUE_ONLY)
   add_custom_command(OUTPUT "${ORE_IR}"
     COMMAND "${CMAKE_COMMAND}"
             "-DORE_COMPILER=${ORESLANG_LLVM_COMPILER}"
+            "-DORE_CLANG=${ORE_CLANG}"
             "-DORE_SOURCE=${ORE_SOURCE}"
             "-DORE_IR=${ORE_IR}"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/compile_ores.cmake"
-    DEPENDS "${ORE_SOURCE}" "${ORESLANG_LLVM_COMPILER}"
+    DEPENDS "${ORE_SOURCE}" "${ORESLANG_LLVM_COMPILER}" "${ORE_CLANG}"
             "${CMAKE_CURRENT_SOURCE_DIR}/scripts/compile_ores.cmake"
             "${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_ores_ir.cmake"
     VERBATIM)
@@ -87,6 +100,16 @@ if(NOT ORES_PHYSICS_QUEUE_ONLY)
   target_link_libraries(physics_spsc_contract PRIVATE
     ores_physics_core ores_native_guest Threads::Threads)
   add_test(NAME bounded_spsc_physics_smoke COMMAND physics_spsc_contract)
+  add_executable(physics_engine_lifecycle_contract
+    tests/engine_lifecycle_contract.cpp src/native/PhysicsEngine.cpp)
+  target_link_libraries(physics_engine_lifecycle_contract PRIVATE
+    ores_physics_core ores_native_guest Threads::Threads)
+  target_compile_options(physics_engine_lifecycle_contract PRIVATE
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Werror>)
+  add_test(NAME real_oreslang_llvm_physics_lifecycle_contract
+    COMMAND physics_engine_lifecycle_contract)
+  set_tests_properties(real_oreslang_llvm_physics_lifecycle_contract
+    PROPERTIES TIMEOUT 80)
 
   if(ORES_PHYSICS_GUI)
     set(CMAKE_AUTOMOC ON)
@@ -103,5 +126,11 @@ if(NOT ORES_PHYSICS_QUEUE_ONLY)
     target_link_libraries(oreslang_physics PRIVATE
       Qt6::Quick Qt6::Qml Qt6::QuickControls2 Threads::Threads
       ores_physics_core ores_native_guest)
+    # Load the real QML resource and observe a live guest-driven tick offscreen.
+    add_test(NAME qt_physics_qml_smoke
+      COMMAND $<TARGET_FILE:oreslang_physics> --smoke-test)
+    set_tests_properties(qt_physics_qml_smoke PROPERTIES
+      ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
+      TIMEOUT 15)
   endif()
 endif()
