@@ -55,7 +55,7 @@ AttoLang is the canonical project name; new source, examples and documentation u
 
 ## Native LLVM + Qt Quick implementation candidate
 
-The imported legacy implementation uses a **native Oreslang** physics kernel, intended to be compiled by
+The imported implementation uses a **native AttoLang** physics kernel, intended to be compiled by
 `oreslang-llvmc` to LLVM IR and then to a machine-code object with Clang. Qt Quick
 renders the bodies and supplies the QML skin. There is no Java runtime, no embedded
 webview, no tracing garbage collector, and no actor dependency in the simulation.
@@ -69,7 +69,7 @@ collision islands, rendering APIs, or hard-real-time WCET proofs are implemented
 
 | Layer | Implementation | Steady-state behavior |
 | --- | --- | --- |
-| Motion, gravity and boundary responses | `src/physics/physics.ores` | Native AOT i64 calculations |
+| Motion, gravity and boundary responses | `src/physics/physics.atto` | Native AOT i64 calculations |
 | Fixed-capacity SoA and frame dispatch | `src/native/PhysicsCore.cpp` | No heap allocation during ticks |
 | Scheduling and snapshot transport | `PhysicsEngine.cpp` | Dedicated thread, fixed step, bounded SPSC queue |
 | Rendering/UI | Qt 6 + `ui/Main.qml` | May allocate; never runs in the simulation thread |
@@ -83,7 +83,7 @@ fixed-point (1/256 pixel) to avoid floating-point portability variability.
 ### Prerequisites
 
 - The actual `oreslang-llvmc` binary built from
-  [oreslang-source.llvm](https://github.com/ores-truffle-oreslang/oreslang-source.llvm)
+  [atto-source.llvm](https://github.com/atto-lang/atto-source.llvm)
   available on `PATH` or explicitly passed to CMake
 - Clang that can consume LLVM IR from that compiler
 - CMake 3.20+, a C++20 compiler
