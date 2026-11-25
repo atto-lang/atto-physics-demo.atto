@@ -1,23 +1,23 @@
-// Oreslang-owned scalar physics kernel. Native LLVM AOT entrypoints.
+// AttoLang-owned scalar physics kernel. Native LLVM AOT entrypoints.
 // Coordinates and velocities are signed i64, in 1/256-pixel units.
 // Inputs are bounded by the host's fixed-size world and verified in native tests.
 // The compiler must fail closed if it cannot lower this source.
 pub fnc physics_advance_axis(int position, int velocity, int lower, int upper): int {
-  const next_position: int = position + velocity;
-  if (next_position < lower) { return lower; } fi
-  if (next_position > upper) { return upper; } fi
+  val int next_position = position + velocity;
+  if next_position < lower then return lower; fi
+  if next_position > upper then return upper; fi
   return next_position;
 }
 
 pub fnc physics_reflect_axis(int position, int velocity, int lower, int upper): int {
-  const next_position: int = position + velocity;
-  if (next_position < lower) { return -velocity; } fi
-  if (next_position > upper) { return -velocity; } fi
+  val int next_position = position + velocity;
+  if next_position < lower then return -velocity; fi
+  if next_position > upper then return -velocity; fi
   return velocity;
 }
 
 pub fnc physics_gravity(int velocity, int acceleration, int terminal): int {
-  const next_velocity: int = velocity + acceleration;
-  if (next_velocity > terminal) { return terminal; } fi
+  val int next_velocity = velocity + acceleration;
+  if next_velocity > terminal then return terminal; fi
   return next_velocity;
 }
