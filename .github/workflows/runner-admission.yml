@@ -1,0 +1,28 @@
+name: Physics source-free runner admission (NOT tests)
+
+on:
+  push:
+    branches: ["feat/**", "fix/**", "test/**"]
+  pull_request:
+  workflow_dispatch:
+
+# This workflow never checks out source, accesses secrets or produces artifacts.
+# A zero-step failure establishes neither compiler nor physics test failure.
+permissions: {}
+
+jobs:
+  no-checkout-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Establish that an actual runner executed a step
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'PHYSICS_SOURCE_FREE_RUNNER_ADMISSION_PASS\n'
+          printf 'RUN_ID=%s\n' "$GITHUB_RUN_ID"
+          printf 'RUN_ATTEMPT=%s\n' "$GITHUB_RUN_ATTEMPT"
+          printf 'HEAD_SHA=%s\n' "$GITHUB_SHA"
+          printf 'RUNNER_NAME=%s\n' "$RUNNER_NAME"
+          printf 'RUNNER_OS=%s\n' "$RUNNER_OS"
+          printf 'RUNNER_ARCH=%s\n' "$RUNNER_ARCH"

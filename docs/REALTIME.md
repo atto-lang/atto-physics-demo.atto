@@ -80,3 +80,21 @@ The native simulation **aims** at hard RT; QML/Qt rendering is best effort.
 Presentation may be delayed or dropped without affecting world ownership.
 No statement that the complete desktop application is hard-RT certified
 should be made based solely on the presence of a simulation worker thread.
+
+## Bounded circle-overlap narrowphase (unverified guest extension)
+
+The `physics_discs_overlap(ax,ay,ar,bx,by,br): int` Oreslang function
+returns 1 for strict overlap, 0 for tangency/separation, and -1 if a
+caller supplies an invalid center/radius. It checks each radius in
+[1792,3328], each center in [radius, extent-radius] before any
+subtraction or multiplication. The maximum admitted squared-distance
+sum is less than `kWidth^2+kHeight^2` and is statically within signed
+64-bit range; the maximum combined-radius square is also bounded.
+The actual guest oracles include tangency, diagonal near-tangency,
+coincident centers, negative/out-of-range inputs and 96 symmetric pairs.
+
+**This is not a collision solver**: no body-to-body impulses,
+penetration separation, contact islands or broadphase is implemented.
+The function does not run in `step_world`. No Oreslang native compiler
+execution has verified the new source or ABI yet; do not report a
+physics-collision feature as complete on source-only evidence.

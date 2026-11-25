@@ -46,6 +46,16 @@ public:
         return skipped_.load(std::memory_order_relaxed);
     }
 
+    // ONLY at a controller-owned quiescent point: no producer or consumer may
+    // be in publish()/consume_latest(). Used between worker generations to
+    // prevent stale pre-restart frames from reaching a newly reset world.
+    // Never call from the producer's steady-state thread.
+    void clear_quiescent() noexcept {
+        head_.store(0, std::memory_order_relaxed);
+        tail_.store(0, std::memory_order_relaxed);
+        skipped_.store(0, std::memory_order_relaxed);
+    }
+
 private:
     std::array<Snapshot, kCapacity> slots_{};
     alignas(64) std::atomic<std::uint32_t> head_{0};

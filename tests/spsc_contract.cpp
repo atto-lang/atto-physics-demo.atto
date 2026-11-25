@@ -19,6 +19,7 @@ int main() {
     while (std::chrono::steady_clock::now() < until && largest < 6) {
         if (engine.read_latest(snap)) {
             had_frame = true;
+            CHECK(snap.generation == 1);
             CHECK(snap.tick >= largest);
             largest = snap.tick;
             for (std::size_t i = 0; i < ores::kBodies; ++i) {

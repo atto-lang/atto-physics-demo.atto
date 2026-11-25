@@ -24,13 +24,16 @@ public:
     std::uint64_t dropped_snapshots() const noexcept { return ring_.skipped_snapshots(); }
 
 private:
-    void run() noexcept;
-    void publish(const World& world, Snapshot& scratch, std::uint64_t late) noexcept;
+    void run(std::uint64_t generation) noexcept;
+    void publish(const World& world, Snapshot& scratch, std::uint64_t late,
+                 std::uint64_t generation) noexcept;
 
     SnapshotRing ring_{};
     std::atomic<bool> running_{false};
     std::atomic<bool> paused_{false};
     std::atomic<bool> reset_requested_{false};
+    // Controller-owned; not read from the simulation thread directly.
+    std::uint64_t next_generation_ = 0;
     std::thread worker_{};
 };
 }  // namespace ores

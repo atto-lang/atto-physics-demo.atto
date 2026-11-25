@@ -11,7 +11,7 @@ ApplicationWindow {
     minimumHeight: 510
     visible: true
     color: "#080f1c"
-    title: "Oreslang | Native LLVM Physics"
+    title: "AttoLang | Native LLVM Physics"
 
     Rectangle {
         anchors.fill: parent
@@ -28,7 +28,7 @@ ApplicationWindow {
             spacing: 16
             ColumnLayout {
                 Text {
-                    text: "ORESLANG  /  PHYSICS"
+                    text: "ATTOLANG  /  PHYSICS"
                     color: "#eef5ff"
                     font.pixelSize: 23
                     font.bold: true
@@ -61,6 +61,7 @@ ApplicationWindow {
             clip: true
             PhysicsCanvas {
                 id: field
+                objectName: "physicsCanvas"
                 anchors.fill: parent
                 Timer {
                     interval: 16
@@ -82,7 +83,7 @@ ApplicationWindow {
             Item { Layout.fillWidth: true }
         }
         Text {
-            text: "Physics: compiled .ores functions  |  Qt is presentation only  |  Hard real-time certification pending"
+            text: "Physics: compiled .atto functions  |  Qt is presentation only  |  Hard real-time certification pending"
             color: "#66809e"
             font.pixelSize: 11
         }
