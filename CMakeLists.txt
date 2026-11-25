@@ -54,7 +54,7 @@ if(NOT ORES_PHYSICS_QUEUE_ONLY)
   find_program(ORESLANG_LLVM_COMPILER NAMES oreslang-llvmc REQUIRED)
   find_program(ORE_CLANG NAMES clang REQUIRED)
 
-  set(ORE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/physics/physics.ores")
+  set(ORE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/physics/physics.atto")
   set(ORE_IR "${CMAKE_CURRENT_BINARY_DIR}/native-physics.ll")
   set(ORE_OBJ "${CMAKE_CURRENT_BINARY_DIR}/native-physics.o")
 
