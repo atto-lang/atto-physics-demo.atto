@@ -1,7 +1,7 @@
 # Negative-only host test: must not produce or reuse any guest IR.
 # Deliberately exercises compiler failure and successful non-IR output.
 set(compiler_script "${CMAKE_CURRENT_LIST_DIR}/../scripts/compile_ores.cmake")
-set(source "${CMAKE_CURRENT_LIST_DIR}/../src/physics/physics.ores")
+set(source "${CMAKE_CURRENT_LIST_DIR}/../src/physics/physics.atto")
 set(artifact "${CMAKE_CURRENT_BINARY_DIR}/physics_compile_failure_probe.ll")
 
 function(expect_rejection label executable)

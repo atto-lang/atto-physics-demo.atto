@@ -7,7 +7,7 @@ endif()
 set(root "${CMAKE_CURRENT_LIST_DIR}/..")
 set(verifier "${root}/scripts/verify_ores_ir.cmake")
 set(compile_script "${root}/scripts/compile_ores.cmake")
-set(source "${root}/src/physics/physics.ores")
+set(source "${root}/src/physics/physics.atto")
 set(work "${CMAKE_CURRENT_BINARY_DIR}/ir_native_parser_negative")
 file(MAKE_DIRECTORY "${work}")
 set(valid [=[
