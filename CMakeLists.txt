@@ -33,6 +33,13 @@ target_compile_options(physics_numeric_envelope_contract PRIVATE
 add_test(NAME physics_numeric_envelope_no_guest_contract COMMAND physics_numeric_envelope_contract)
 add_test(NAME guest_optimization_config_no_guest_contract
   COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/guest_optimization_contract.cmake")
+if(UNIX)
+  find_program(ORE_TEST_BASH NAMES bash)
+  if(ORE_TEST_BASH)
+    add_test(NAME pinned_guest_runner_rejection_no_guest_contract
+      COMMAND "${ORE_TEST_BASH}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/pinned_guest_runner_contract.sh")
+  endif()
+endif()
 
 if(ORES_PHYSICS_QUEUE_ONLY AND ORES_PHYSICS_GUI)
   message(FATAL_ERROR "Queue-only verification requires -DORES_PHYSICS_GUI=OFF")
@@ -56,9 +63,13 @@ if(NOT ORES_PHYSICS_QUEUE_ONLY)
             "${CMAKE_CURRENT_SOURCE_DIR}/scripts/compile_ores.cmake"
             "${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_ores_ir.cmake"
     VERBATIM)
+  # A reconfigure changing 0 <-> 2 must invalidate an existing guest .o.
+  # CMake writes this stamp only when its contents change.
+  set(ORE_OPT_STAMP "${CMAKE_CURRENT_BINARY_DIR}/native-physics-opt-level.txt")
+  file(GENERATE OUTPUT "${ORE_OPT_STAMP}" CONTENT "${ORES_PHYSICS_GUEST_OPT_LEVEL}\n")
   add_custom_command(OUTPUT "${ORE_OBJ}"
     COMMAND "${ORE_CLANG}" "-O${ORES_PHYSICS_GUEST_OPT_LEVEL}" -x ir -c "${ORE_IR}" -o "${ORE_OBJ}"
-    DEPENDS "${ORE_IR}" "${ORE_CLANG}" VERBATIM)
+    DEPENDS "${ORE_IR}" "${ORE_CLANG}" "${ORE_OPT_STAMP}" VERBATIM)
   set_source_files_properties("${ORE_OBJ}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 
   add_library(ores_physics_core STATIC src/native/PhysicsCore.cpp)

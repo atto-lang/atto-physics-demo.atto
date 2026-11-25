@@ -120,9 +120,10 @@ The native object optimization is explicit via `ORES_PHYSICS_GUEST_OPT_LEVEL`
 negative/invalid modes without compiling or fabricating guest IR.
 
 On an authorized Linux checkout with a genuine pinned compiler and Clang, run
-`scripts/run_pinned_llvm_guest_matrix.sh` with all five mandatory environment
-variables: `EXPECTED_PHYSICS_COMMIT_SHA`, `EXPECTED_LLVM_COMPILER_SHA256`,
-`EXPECTED_CLANG_SHA256`, `ORESLANG_LLVM_COMPILER` and `ORE_CLANG`.
+`scripts/run_pinned_llvm_guest_matrix.sh` with all six mandatory environment
+variables: `EXPECTED_PHYSICS_COMMIT_SHA`, `EXPECTED_PHYSICS_TREE_SHA`,
+`EXPECTED_LLVM_COMPILER_SHA256`, `EXPECTED_CLANG_SHA256`,
+`ORESLANG_LLVM_COMPILER` and `ORE_CLANG`.
 The SHA values must be independently approved before execution. The script
 rejects a dirty or mismatched physics checkout, invalid executable identities,
 missing pins and missing binaries. It configures independent guest O0 and O2
@@ -134,11 +135,34 @@ The runner prints source commit/tree and input/output SHA-256 values for a
 receipt. It does not acquire compilers, copy private source, approve another
 organization, establish OS/hardware WCET, or certify zero allocations.
 
-### Fresh-build provenance hardening
+## Fresh guest build provenance (stacked hardening gate)
 
-Each pinned-matrix invocation creates a fresh, uniquely named private build root
-under ignored `build/`, prints its location in the receipt, and compiles separate
-`O0` and `O2` guest artifacts there. Previous IR/object/executable files cannot
-be reused by accident. Existing `build/` symlinks are rejected, and CTest must
-contain at least one test. Generated build directories are retained for review;
-clean them up only after archiving the independently approved evidence.
+The real O0/O2 runner now requires both `EXPECTED_PHYSICS_COMMIT_SHA` and
+`EXPECTED_PHYSICS_TREE_SHA` (40 lowercase hexadecimal digits each), plus
+independently approved SHA-256 pins for `oreslang-llvmc` and Clang. Retrieve
+the exact tree with `git rev-parse 'HEAD^{tree}'` in the authorized source
+repository; do not infer approval from a matching commit alone.
+
+After validating the source commit/tree, clean worktree and both compiler
+digests, the runner allocates a **fresh unique private build directory** under
+`build/pinned-native-guest.XXXXXXXX`, with O0 and O2 subdirectories. It
+rejects a symlinked `build/` root and preserves any previous receipts rather
+than deleting them. Reusing an old IR/object/native-contract executable cannot
+satisfy this runner's newly allocated build directory. Clean up older build
+directories only under a separate reviewed retention policy.
+
+An optimization-level change in a separately managed CMake build directory
+also changes `native-physics-opt-level.txt`; the native object depends on
+that file. A host-only CMake configure contract checks O0→O2 in the **same**
+build directory without running a compiler or fabricating physics IR.
+
+The source-free negative runner contract tests wrong HEAD, wrong tree, dirty
+worktree, compiler digest mismatch, Clang digest mismatch and a symlinked
+build root. Synthetic sentinel programs are not used as physics compiler
+substitutes; no native guest proof follows from those checks.
+
+**Current evidence boundary:** the runner's freshness and pin guards are
+host/source contracts only. Nothing here proves a real compiler produced
+correct IR, that Qt ran, that sanitizers passed, or that a hard RT deadline
+is satisfied. Keep the stacked PRs draft until independent exact-head native
+execution and review have been recorded.

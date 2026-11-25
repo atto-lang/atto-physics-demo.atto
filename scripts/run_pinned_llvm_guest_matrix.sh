@@ -3,6 +3,7 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 : "${EXPECTED_PHYSICS_COMMIT_SHA:?Set expected full physics Git commit SHA}"
+: "${EXPECTED_PHYSICS_TREE_SHA:?Set independently verified full source Git tree SHA}"
 : "${EXPECTED_LLVM_COMPILER_SHA256:?Set independently approved compiler binary SHA256}"
 : "${EXPECTED_CLANG_SHA256:?Set independently approved Clang binary SHA256}"
 : "${ORESLANG_LLVM_COMPILER:?Set absolute path to genuine oreslang-llvmc}"
@@ -12,6 +13,7 @@ require_sha() {
   [[ "$2" =~ ^[0-9a-f]{${3}}$ ]] || { echo "Invalid $1" >&2; exit 2; }
 }
 require_sha EXPECTED_PHYSICS_COMMIT_SHA "$EXPECTED_PHYSICS_COMMIT_SHA" 40
+require_sha EXPECTED_PHYSICS_TREE_SHA "$EXPECTED_PHYSICS_TREE_SHA" 40
 require_sha EXPECTED_LLVM_COMPILER_SHA256 "$EXPECTED_LLVM_COMPILER_SHA256" 64
 require_sha EXPECTED_CLANG_SHA256 "$EXPECTED_CLANG_SHA256" 64
 for binary in "$ORESLANG_LLVM_COMPILER" "$ORE_CLANG"; do
@@ -23,6 +25,10 @@ command -v sha256sum >/dev/null || { echo 'sha256sum required' >&2; exit 2; }
 source_head=$(git -C "$root" rev-parse HEAD)
 [[ "$source_head" == "$EXPECTED_PHYSICS_COMMIT_SHA" ]] || {
   echo "Physics source HEAD mismatch: $source_head" >&2; exit 2;
+}
+source_tree=$(git -C "$root" rev-parse 'HEAD^{tree}')
+[[ "$source_tree" == "$EXPECTED_PHYSICS_TREE_SHA" ]] || {
+  echo "Physics source tree mismatch: $source_tree" >&2; exit 2;
 }
 [[ -z "$(git -C "$root" status --porcelain --untracked-files=all)" ]] || {
   echo 'Physics source worktree is not clean' >&2; exit 2;
@@ -36,17 +42,19 @@ clang_sha=$(sha256sum "$ORE_CLANG" | cut -d' ' -f1)
   echo "Clang digest mismatch" >&2; exit 2;
 }
 printf 'PHYSICS_GUEST_GATE_SOURCE_COMMIT=%s\n' "$source_head"
-printf 'PHYSICS_GUEST_GATE_SOURCE_TREE=%s\n' "$(git -C "$root" rev-parse HEAD^{tree})"
+printf 'PHYSICS_GUEST_GATE_SOURCE_TREE=%s\n' "$source_tree"
 printf 'PHYSICS_GUEST_GATE_COMPILER_SHA256=%s\n' "$compiler_sha"
 printf 'PHYSICS_GUEST_GATE_CLANG_SHA256=%s\n' "$clang_sha"
 "$ORE_CLANG" --version | head -n 1
 
-# Always allocate a new private build root. Reusing ignored build/ contents
-# would allow stale IR, objects, or binaries to impersonate a current-head run.
-[[ ! -L "$root/build" ]] || { echo 'Build root must not be a symlink' >&2; exit 2; }
-mkdir -p "$root/build"
+# Allocate one new run-specific build root instead of deleting existing output.
+# All O0/O2 native inputs and results must come from this one clean invocation.
+if [[ -L "$root/build" ]]; then
+  echo "Refusing symlinked build root" >&2; exit 2;
+fi
+mkdir -p -- "$root/build"
 run_dir=$(mktemp -d "$root/build/pinned-native-guest.XXXXXXXX") || {
-  echo 'Cannot allocate a fresh physics guest build directory' >&2; exit 2;
+  echo "Unable to create fresh physics guest build directory" >&2; exit 2;
 }
 printf 'PHYSICS_GUEST_GATE_BUILD_DIRECTORY=%s\n' "$run_dir"
 prior_digest=''
