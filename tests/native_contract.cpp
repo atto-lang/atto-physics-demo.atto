@@ -10,6 +10,8 @@ extern "C" {
 std::int64_t physics_advance_axis(std::int64_t, std::int64_t, std::int64_t, std::int64_t);
 std::int64_t physics_reflect_axis(std::int64_t, std::int64_t, std::int64_t, std::int64_t);
 std::int64_t physics_gravity(std::int64_t, std::int64_t, std::int64_t);
+std::int64_t physics_discs_overlap(std::int64_t, std::int64_t, std::int64_t,
+                                   std::int64_t, std::int64_t, std::int64_t);
 }
 #define CHECK(cond) do { if (!(cond)) { \
   std::fprintf(stderr, "FAILED %s:%d: %s\n", __FILE__, __LINE__, #cond); \
@@ -61,6 +63,30 @@ int main() {
           -ores::kMaxVerticalSpeed + ores::kGravityPerTick);
     CHECK(physics_gravity(ores::kTerminalVerticalSpeed, ores::kGravityPerTick,
                           ores::kTerminalVerticalSpeed) == ores::kTerminalVerticalSpeed);
+    // Compiler-generated Oreslang narrowphase, NOT a host stand-in.
+    // Strict tangency is not penetration; invalid FFI inputs fail closed.
+    CHECK(physics_discs_overlap(10000, 10000, 2000, 13999, 10000, 2000) == 1);
+    CHECK(physics_discs_overlap(10000, 10000, 2000, 14000, 10000, 2000) == 0);
+    CHECK(physics_discs_overlap(10000, 10000, 2000, 14001, 10000, 2000) == 0);
+    CHECK(physics_discs_overlap(10000, 10000, 2000, 10000, 10000, 2000) == 1);
+    CHECK(physics_discs_overlap(10000, 10000, 2000, 12828, 12828, 2000) == 1);
+    CHECK(physics_discs_overlap(10000, 10000, 2000, 12829, 12829, 2000) == 0);
+    CHECK(physics_discs_overlap(0, 10000, 2000, 10000, 10000, 2000) == -1);
+    CHECK(physics_discs_overlap(10000, 10000, -1, 12000, 10000, 2000) == -1);
+    CHECK(physics_discs_overlap(10000, 10000, 5000, 12000, 10000, 2000) == -1);
+    CHECK(physics_discs_overlap(10000, 10000, 2000, 245760, 10000, 2000) == -1);
+    for (std::int64_t n = 0; n < 96; ++n) {
+        const auto ax = 10000 + n * 31;
+        const auto ay = 10000 + n * 17;
+        const auto bx = 15000 + n * 23;
+        const auto by = 12000 + n * 29;
+        const auto lr = 1792 + n % 20;
+        const auto rr = 1800 + n % 11;
+        const auto forward = physics_discs_overlap(ax, ay, lr, bx, by, rr);
+        const auto reverse = physics_discs_overlap(bx, by, rr, ax, ay, lr);
+        CHECK(forward == reverse);
+        CHECK(forward == 0 || forward == 1);
+    }
     ores::World a{}, b{};
     ores::reset_world(a);
     ores::reset_world(b);

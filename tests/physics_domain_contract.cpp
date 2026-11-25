@@ -30,6 +30,13 @@ static_assert(initial_state_in_domain(), "initial SoA arrays violate the bounded
 static_assert(ores::kMaxVerticalSpeed + ores::kGravityPerTick <
               std::numeric_limits<std::int64_t>::max());
 static_assert(ores::kMaxHorizontalSpeed < std::numeric_limits<std::int64_t>::max());
+static_assert(ores::kWidth <= std::numeric_limits<std::int64_t>::max() / ores::kWidth);
+static_assert(ores::kHeight <= std::numeric_limits<std::int64_t>::max() / ores::kHeight);
+static_assert(ores::kWidth * ores::kWidth <
+              std::numeric_limits<std::int64_t>::max() -
+              ores::kHeight * ores::kHeight);
+static_assert(2 * ores::kMaxRadius <=
+              std::numeric_limits<std::int64_t>::max() / (2 * ores::kMaxRadius));
 }
 
 int main() {

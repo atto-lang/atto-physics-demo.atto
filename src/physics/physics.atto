@@ -21,3 +21,33 @@ pub fnc physics_gravity(int velocity, int acceleration, int terminal): int {
   if next_velocity > terminal then return terminal; fi
   return next_velocity;
 }
+
+
+// Deterministic, bounded integer circle/circle narrowphase predicate ONLY.
+//  1: strictly overlapping, 0: separated or exactly tangent,
+// -1: caller supplied an out-of-domain position/radius.
+// No collision response, force/impulse, broadphase or parallel tasks yet.
+// Guest arithmetic is safe for *accepted* inputs: dx^2 + dy^2 is bounded
+// below (245760^2 + 143360^2), far below signed i64 maximum.
+pub fnc physics_discs_overlap(int ax, int ay, int ar, int bx, int by, int br): int {
+  if ar < 1792 then return -1; fi
+  if ar > 3328 then return -1; fi
+  if br < 1792 then return -1; fi
+  if br > 3328 then return -1; fi
+  if ax < ar then return -1; fi
+  if bx < br then return -1; fi
+  if ay < ar then return -1; fi
+  if by < br then return -1; fi
+  if ax > 245760 - ar then return -1; fi
+  if bx > 245760 - br then return -1; fi
+  if ay > 143360 - ar then return -1; fi
+  if by > 143360 - br then return -1; fi
+
+  val int dx = ax - bx;
+  val int dy = ay - by;
+  val int radii = ar + br;
+  val int separation_squared = dx * dx + dy * dy;
+  val int contact_squared = radii * radii;
+  if separation_squared < contact_squared then return 1; fi
+  return 0;
+}

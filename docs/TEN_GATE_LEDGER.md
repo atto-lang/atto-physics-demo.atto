@@ -14,7 +14,7 @@ identities. Jobs with zero steps are runner admission failures.
 | 6 | Sanitizers and allocations | PARTIAL: transport/layout host tests; guest not tested | ASan/UBSan + supported TSAN against real native guest, binary allocation interposition after warm-up | Declared fixed arrays, zero tracing-GC claim |
 | 7 | Actual Qt 6 | BLOCKED | Build/launch QML on Linux with Qt 6; rapid close, pause/reset, render starvation and teardown stress | QML static formatter, C++ syntax-only |
 | 8 | SoA→AoSoA data layout | PARTIAL: snapshot transport pack/unpack added | Host `snapshot_aosoa_layout_no_guest_contract`, then compiler-backed serial-vs-AoSoA *simulation* equality once real guest owns both versions | Snapshot packing equals physics parity |
-| 9 | Circle collisions & broadphase | NOT IMPLEMENTED | Fixed-size pair fixture oracle, compiler-generated `.ores` narrowphase, deterministic contact order and bounded broadphase before integration | Wall reflection, host-language collision substitute |
+| 9 | Circle collisions & broadphase | PARTIAL: bounded Oreslang narrowphase predicate and guest oracles authored; still uncompiled, no response/broadphase | Fixed-size pair fixture oracle, compiler-generated `.ores` narrowphase, deterministic contact order and bounded broadphase before integration | Wall reflection, host-language collision substitute |
 | 10 | Hard-RT + promotion | BLOCKED | Hardware/OS identified; allocation/free and WCET traces; independent approval; branch protection; exact-head nonzero-step CI | 60 Hz `sleep_until`, green source-only tests |
 
 ## Source-only work in this stack
@@ -73,3 +73,12 @@ Record these independently:
 - Keep the **actual physics dynamics in `.ores`**; the host may display,
   allocate bounded buffers and own minimal ABI primitives but must not
   silently implement the solver as a C++ replacement.
+
+### Current collision scope
+One additional `.ores` function tests bounded integer circle overlap,
+including explicit input-domain checks. Its six-i64 symbol is now required
+by the LLVM IR preflight, and the native contract contains symmetry,
+diagonal tangency and invalid-domain fixtures. There is **no** collision
+response or broadphase, and it is not called by the time-step loop.
+Those are separate follow-on milestones requiring pinned compiler-backed
+evidence before claims of simulation parity.
