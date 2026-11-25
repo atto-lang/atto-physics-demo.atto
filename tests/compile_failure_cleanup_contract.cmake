@@ -7,17 +7,19 @@ set(artifact "${CMAKE_CURRENT_BINARY_DIR}/physics_compile_failure_probe.ll")
 function(expect_rejection label executable)
   file(WRITE "${artifact}" "STALE_FINAL_ARTIFACT_MUST_BE_REMOVED\n")
   file(WRITE "${artifact}.candidate" "STALE_CANDIDATE_MUST_BE_REMOVED\n")
+  file(WRITE "${artifact}.verify-probe.o" "STALE_PARSE_PROBE_MUST_BE_REMOVED\n")
   execute_process(
     COMMAND "${CMAKE_COMMAND}"
-      "-DORE_COMPILER=${executable}" "-DORE_SOURCE=${source}"
+      "-DORE_COMPILER=${executable}" "-DORE_CLANG=${CMAKE_COMMAND}" "-DORE_SOURCE=${source}"
       "-DORE_IR=${artifact}" -P "${compiler_script}"
     RESULT_VARIABLE status OUTPUT_VARIABLE out ERROR_VARIABLE err
   )
   if("${status}" STREQUAL "0")
     message(FATAL_ERROR "${label}: rejected compilation unexpectedly succeeded")
   endif()
-  if(EXISTS "${artifact}" OR EXISTS "${artifact}.candidate")
-    message(FATAL_ERROR "${label}: stale or rejected guest IR was left on disk")
+  if(EXISTS "${artifact}" OR EXISTS "${artifact}.candidate"
+     OR EXISTS "${artifact}.verify-probe.o")
+    message(FATAL_ERROR "${label}: stale guest IR or parse probe was left on disk")
   endif()
 endfunction()
 

@@ -202,3 +202,78 @@ interposition or WCET.
 See `docs/TEN_GATE_LEDGER.md` for ten numbered promotion gates and exact
 missing evidence for each. Keep native compiler, Qt, TSAN and target
 real-time claims explicitly marked unverified until executed.
+
+
+## Static LLVM IR body-admission regression (source-only)
+
+The ABI preflight now rejects a bare `define i64 @function(...)` header if
+it has no opening function body, including braces in an LLVM IR comment. It
+permits attributes between the signature and the body opener and an optional
+line break before the brace. Two negative mutation fixtures lock down those
+cases; the original arity/type/linkage and comment-vs-declaration tests remain.
+
+This is only a structural IR gate. A fully valid LLVM IR module still requires
+real compiler output and a native Clang parse/build followed by execution.
+Source-equivalent local CMake fixtures and Clang-generated C-reference IR
+cannot substitute for `.ores` guest compilation or exact-head GitHub Actions.
+
+At Clang O2 a valid function may acquire an ABI-neutral `range(i64 0, 2)`
+return attribute (for an integer-valued predicate). The preflight therefore
+accepts this narrowly specified attribute before `i64`, while refusing
+incorrect range widths and ABI-modifying `zeroext` returns. The exact source
+blobs were locally tested against C-reference Clang `-O0` and `-O2` IR;
+this proves structural compatibility only, not Oreslang guest execution.
+
+## Fail-closed native parameter ABI boundary
+
+The C++ physics functions call the guest via ordinary signed `int64_t` values.
+A syntactically valid LLVM `i64` parameter can nevertheless carry
+ABI-affecting attributes such as `zeroext`, `signext`, or `inreg`; a
+type-only verifier incorrectly accepted those attributes. The structural
+preflight now permits only `i64`, optional ABI-neutral `noundef`, and an
+optional unquoted SSA parameter name. Unknown parameter attributes are
+rejected until their C-ABI compatibility is demonstrated.
+
+Negative fixtures cover `zeroext`, `signext`, `inreg`, and
+`noundef inreg`; a named-SSA positive fixture protects ordinary IR.
+Local byte-identical Git-blob host tests and Clang C-reference O0/O2 IR
+checks are not real Oreslang native guest execution.
+
+
+## Native LLVM parser/codegen gate before IR publication (host-side evidence)
+
+The handwritten regular-expression ABI preflight is not a full LLVM parser or
+module verifier: IR can contain all four correctly shaped symbol declarations
+and still be malformed or refer to undefined SSA values. The real-guest
+`compile_ores.cmake` path now requires `ORE_CLANG` from the same explicitly
+selected Clang executable used by CMake's guest object rule. Before the
+`.candidate` IR is renamed to `native-physics.ll`, that executable runs:
+
+```sh
+clang -x ir -c native-physics.ll.candidate -o native-physics.ll.verify-probe.o
+```
+
+A nonzero result, missing output object, or empty object rejects publication
+and deletes the final IR, candidate, and scratch object. Successful probes
+are deleted before the verified candidate is atomically published. This is
+a real LLVM parser/codegen check; it still does **not** establish Oreslang
+source-to-IR provenance, guest arithmetic correctness, native executable
+testing, GUI behavior, or hard real-time timing.
+
+The host-only `llvm_ir_native_parser_no_guest_contract` invokes real Clang
+on synthetic reference LLVM IR. It also confirms that a byte-identical valid
+reference module is published after Clang succeeds, with no candidate or probe
+object left behind; this success case is **not** an Oreslang guest build. Its malformed case has a valid-looking ABI
+header but an undefined SSA operand: the structural check accepts it, and
+Clang rejects it. The negative publication test checks failure and complete
+artifact cleanup. A second negative test uses a zero-exit stand-in that
+writes no object and requires rejection. The older compiler-failure test
+also pre-seeds a stale verification object to check early cleanup paths.
+
+This contract runs if Clang is discoverable for host-only CTest; the
+production native build always requires Clang, and the pinned O0/O2 runner
+must independently check the selected Clang's binary SHA-256. If available,
+a separately pinned `llvm-as`/`opt -passes=verify` may be added for
+additional module verification; this patch does not claim those commands
+ran. The source-organization runner admission and real `oreslang-llvmc`
+guest checks remain independent, mandatory promotion gates.
